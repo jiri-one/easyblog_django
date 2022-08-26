@@ -1,22 +1,26 @@
 from django.db import models
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator
+from datetime import datetime
 
 class Post(models.Model):
-    id = models.IntegerField(primary_key=True, validators=[MinValueValidator(1)], editable=False)
+    def get_next_id():
+        return Post.objects.count() + 1
+    
+    id = models.IntegerField(primary_key=True, validators=[MinValueValidator(1)], editable=False, default=get_next_id)
     title_cze = models.CharField("Post title CZE", unique=True, max_length=100)
     title_eng = models.CharField("Post title ENG", unique=True, max_length=100, blank=True, null=True, default=None)
     content_cze = models.TextField("Post content CZE")
     content_eng = models.TextField("Post content ENG", blank=True, null=True, default=None)
     url_cze = models.SlugField("Post URL CZE", unique=True, max_length=100, editable=False)
     url_eng = models.SlugField("Post URL ENG", unique=True, max_length=100, blank=True, null=True, editable=False, default=None)
-    pub_time = models.DateTimeField("Fist release time", auto_now_add=True)
+    pub_time = models.DateTimeField("Fist release time", editable=False, default=datetime.now)
+    # for pub_time I can use auto_now_add , but it is not working for import, where is another time
     mod_time = models.DateTimeField("Last modification time", auto_now=True)
     author = models.ForeignKey("Author", on_delete=models.PROTECT)
     tags = models.ManyToManyField("Tag")
     
     def save(self, *args, **kwargs):
-        self.id = self.__class__.objects.count() + 1
         self.url_cze = slugify(self.title_cze)
         if self.title_eng is not None:
             self.url_eng = slugify(self.title_eng)

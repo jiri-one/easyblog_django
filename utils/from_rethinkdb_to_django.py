@@ -13,7 +13,7 @@ europe_prague = ZoneInfo("Europe/Prague")
 # RethinkDB settings
 db_name = "blog_jirione"
 r = RethinkDB()
-rethinkdb_ip = "172.19.37.187"
+rethinkdb_ip = "172.19.38.53"
 rethinkdb_port = 28015
 conn = r.connect(rethinkdb_ip, rethinkdb_port, db=db_name)
 topics = r.table("topics")
@@ -38,12 +38,11 @@ def django_context():
 def migrate_db_from_rethinkdb_to_django():
     with django_context():
         from jiri_one.models import Post, Tag, Author
-        Post.objects.all().delete()
-        Tag.objects.all().delete()
+        # Post.objects.all().delete()
+        # Tag.objects.all().delete()
         dict_row = {}
         id = posts.count().run(conn)
-        for post in posts.order_by(r.desc("when")).run(conn):
-            dict_row["id"] = id
+        for post in posts.order_by(r.asc("when")).run(conn):
             dict_row["title_cze"] = post["header"]["cze"]
             dict_row["content_cze"] = post["content"]["cze"]
             dict_row["pub_time"] = datetime.strptime(post["when"], "%Y-%m-%d %H:%M:%S").astimezone(europe_prague)
@@ -57,6 +56,6 @@ def migrate_db_from_rethinkdb_to_django():
             django_post, _ = Post.objects.update_or_create(title_cze=dict_row["title_cze"], defaults={**dict_row})
             django_post.save()
             django_post.tags.add(*tags)
-            id = id - 1
+
 
 migrate_db_from_rethinkdb_to_django()
