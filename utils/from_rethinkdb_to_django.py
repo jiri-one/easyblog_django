@@ -2,6 +2,25 @@ from sys import path as sys_path
 from pathlib import Path
 from contextlib import contextmanager
 from os import environ
+from datetime import datetime
+from zoneinfo import ZoneInfo
+from rethinkdb import RethinkDB
+import asyncio
+
+# timezone settings
+europe_prague = ZoneInfo("Europe/Prague")
+
+# RethinkDB settings
+db_name = "blog_jirione"
+r = RethinkDB()
+rethinkdb_ip = "172.19.37.187"
+rethinkdb_port = 28015
+conn = r.connect(rethinkdb_ip, rethinkdb_port, db=db_name)
+topics = r.table("topics")
+posts = r.table("posts")
+comments = r.table("comments")
+authors = r.table("authors")
+
 
 @contextmanager
 def django_context():
@@ -9,31 +28,35 @@ def django_context():
         django_dir = str(Path(__file__).parent.parent)
         sys_path.append(django_dir)
         from django.core.wsgi import get_wsgi_application
-        environ["DJANGO_SETTINGS_MODULE"] = "easydict.settings"
+        environ["DJANGO_SETTINGS_MODULE"] = "easyblog.settings"
         application = get_wsgi_application()
         yield
     finally:
         sys_path.remove(django_dir)
         del application
 
-def remove_empty(line):
-	dict_row = {}
-	line_list = line.split("\t")
-	dict_row["eng"] = line_list[0] # english translation will be here always
-	dict_row["cze"] = line_list[1] # czech translation will be here always
-	if line_list[2]:
-		dict_row["notes_cze"] = line_list[2]
-	if line_list[3]:
-		dict_row["special_cze"] = line_list[3]
-	removed_new_line = str(line_list[4]).replace("\n", "")
-	if removed_new_line:
-		dict_row["author"] = removed_new_line
-	return dict_row
+def migrate_db_from_rethinkdb_to_django():
+    with django_context():
+        from jiri_one.models import Post, Tag, Author
+        Post.objects.all().delete()
+        Tag.objects.all().delete()
+        dict_row = {}
+        id = posts.count().run(conn)
+        for post in posts.order_by(r.desc("when")).run(conn):
+            dict_row["id"] = id
+            dict_row["title_cze"] = post["header"]["cze"]
+            dict_row["content_cze"] = post["content"]["cze"]
+            dict_row["pub_time"] = datetime.strptime(post["when"], "%Y-%m-%d %H:%M:%S").astimezone(europe_prague)
+            # dict_row["mod_time"] = ...
+            dict_row["author"] = Author.objects.get(id=1)
+            tags = []
+            for tag in post["topics"]["cze"].split(";")[:-1]:
+                topic = list(topics.filter(r.row["topic"]["cze"] == tag).run(conn))[0]
+                tag_to_add, _ = Tag.objects.get_or_create(name_cze=tag, defaults={"name_cze": tag, "desc_cze": topic["description"]["cze"], "order": topic["order"]})
+                tags.append(tag_to_add)
+            django_post, _ = Post.objects.update_or_create(title_cze=dict_row["title_cze"], defaults={**dict_row})
+            django_post.save()
+            django_post.tags.add(*tags)
+            id = id - 1
 
-with django_context():
-    from web.models import Record
-    with open("utils/en-cs.txt", "rb") as file:
-        for line in file:
-            dict_row = remove_empty(line.decode())
-            record = Record(**dict_row)
-            record.save()
+migrate_db_from_rethinkdb_to_django()
