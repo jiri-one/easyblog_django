@@ -1,0 +1,216 @@
+body {
+  font-family: arial;
+  font-size: 22px;
+  border: 2px solid #3c67be;
+}
+
+b, strong {
+  font-weight: bold;
+}
+
+p {
+  display: block;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+dl {
+  width: 100%;
+  overflow: hidden;
+  border-top: 1px solid #3c67be;
+}
+dt {
+  float: left;
+  width: 50%;
+  /* adjust the width; make sure the total of both is 100% */
+  border-bottom: 1px solid #3c67be;
+}
+dd {
+  float: left;
+  width: 50%;
+  /* adjust the width; make sure the total of both is 100% */
+  border-bottom: 1px solid #3c67be;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+
+header {
+  grid-column: span 3;
+  padding-bottom: 10px;
+  text-align: center;
+  font-size: 2em;
+  background-color: #3c67be;
+  color: white;
+}
+
+main {
+  flex: 1;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+nav {
+  background-color: #f5f5f5;
+  padding: 20px;
+  text-align: center;
+}
+
+footer {
+  grid-column: span 3;
+  padding: 10px;
+  text-align: center;
+  font-size: 1.0em;
+  background-color: #3c67be;
+  color: white;
+}
+
+h1 {
+  margin-bottom: 1em;
+  font-size: 1.3em;
+  font-weight: bold;
+}
+
+.title a:link, .title a:visited {
+  color: #000000;
+  text-decoration: none;
+  font-variant: small-caps;
+}
+
+.menu a:link, #sideLeft a:visited { display: block; padding: 2px 0px 2px 10px; margin: 0px; background-color: #c5d7fb; color: #000000; text-decoration: none; }
+.menu a:hover { background-color: #3c67be; color: #FFFFFF; }
+
+.date { font-weight: bold; border: 1px solid #3c67be; margin: 0px 0px 20px 0px; padding: 3px; background-color: #c5d7fb; color: #000000; }
+
+.titulek { font-weight: bold; border-bottom: 1px solid #3c67be; margin: 0px 0px 5px 0px; padding: 0px 0px 2px 0px; }
+.titulek a:link, #titulek a:visited { color: #000000; text-decoration: none; }
+.titulek a:hover { color: #3c67be; }
+
+.meta { margin-bottom: 15px; }
+.meta a:link, .meta a:visited { color: #3c67be; }
+.meta a:hover { color: #3c67be; }
+
+.postend { margin: 5px 0px 30px 0px; padding: 0px; text-align: center; color: #c5d7fb; font-size: 18px; line-height: 0px; }
+
+a:link, a:visited { color: #000000; }
+a:hover { color: #3c67be; }
+
+.topics {
+  border: 1px solid #3c67be;
+}
+
+.img_flag {
+    margin-left: 5px
+}
+
+.other-links {
+  border: 1px solid #3c67be;
+  }
+
+.feedback {
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+.nav-other {
+  display: none;
+  }
+
+body {
+  font-family: arial;
+  font-size: 20px;
+  border: 2px solid #3c67be;
+}
+
+header {
+font-size: 7vw;
+}
+}
+
+.footer-other {
+    text-align: center;
+}
+
+.footer-other a:link, #sideLeft a:visited { display: block; padding: 2px 0px 2px 10px; margin: 0px; background-color: #c5d7fb; color: #000000; text-decoration: none; }
+.footer-other a:hover { background-color: #3c67be; color: #FFFFFF; }
+
+.comment_header {background-color: #E4E4E4;}
+
+.comment_title {
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+.comment_form input[type=text], input[type=number], input[type=password], textarea {
+  width: 100%;
+  padding: 5px 10px;
+  margin: 5px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 24px;
+}
+
+.search_form input[type=text] {
+  width: 100%;
+  padding: 5px 10px;
+  margin: 2px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 24px;
+}
+
+.comment_form input[type=submit], .search_form input[type=submit] {
+  width: 200px;
+  background-color: #c5d7fb;
+  color: black;
+  padding: 7px 15px;
+  margin: 8px 0;
+  border: 1px solid #3c67be;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.comment_form input[type=submit]:hover, .search_form input[type=submit]:hover {
+  background-color: #3c67be;
+  color: #FFFFFF;
+  font-size: 24px;
+}
+
+.comment_form {
+  border-radius: 5px;
+  background-color: #f2f2f2;
+  padding: 20px;
+}
+
+@media (min-width: 720px) {
+  .container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .comment_form input[type=text], input[type=password], textarea {
+    width: 600px;
+  }
+  .topics_admin {
+    display: inline;
+  }
+  .footer-other {
+    display: none;
+  }
+  nav .menu {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 20px;
+  }
+}

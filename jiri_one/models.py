@@ -46,7 +46,7 @@ class Comment(models.Model):
     title = models.CharField("Comment title", max_length=100)
     content = models.TextField("Comment content")
     nick = models.CharField("Comment author - nick", max_length=20)
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)
     
     def __str__(self):
         return f"{self.title} - {self.nick}"
