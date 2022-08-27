@@ -11,8 +11,3 @@ def tags_html(tags):
              f"""<a href="/tag/{tag["url_cze"]}">{tag["name_cze"]}</a>"""
         )
     return ", ".join(tags_links)
-
-@register.filter
-def count(item):
-    """Return count of item"""
-    return item.count()

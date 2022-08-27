@@ -3,20 +3,17 @@
 
 {% block content %}
 
-{% autoescape off %}
 {% for post in posts %}
-     
      {% ifchanged post.pub_time|date %} 
           <div class="date">{{ post.pub_time|date }}</div>
      {% endifchanged %}
      <div class="titulek"><a href="/{{ post.url_cze }}">{{ post.title_cze }}</a></div>
      <div class="meta">
-          <div class="zarazen_do">Zařazen do: {{ post.tags|tags_html }} — {{ post.author }} @ {{ post.pub_time|time:"H:i" }}</div>
+          <div class="zarazen_do">Tagy: {{ post.tags|tags_html|safe }} — {{ post.author }} @ {{ post.pub_time|time:"H:i" }}</div>
      </div>
-     <div class="obsah">{{ post.content_cze }}</div>
-     <div class="feedback">Počet komentářů: {{ post.comments|count }}</div> 
+     <div class="obsah">{{ post.content_cze|safe }}</div>
+     <div class="feedback">Počet komentářů: {{ post.comments.count }}</div> 
      <div class="postend">• • •</div>
 {% endfor %}
-{% endautoescape %}
 
 {% endblock %}

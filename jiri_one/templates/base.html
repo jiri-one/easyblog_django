@@ -28,10 +28,15 @@
 <b>O autorovi:</b><br>
 <a class="topics" href="/o-mne">O mně</a>
 <br>
-<b>Témata:</b>
+<b>Tagy:</b>
 <div class="topics">
-{% block tags %}
-{% endblock %}
+{% for tag in tags %}
+	{% if forloop.last %}
+		<a href="{{ tag.url_cze }}">{{ tag.name_cze }}</a>
+	{% else %}
+		<a style="border-bottom: 1px solid #3c67be;" href="{{ tag.url_cze }}">{{ tag.name_cze }}</a>
+	{% endif %}
+{% endfor %}
 </div><!-- .topics-->
 <br>
 <div class="search_form">
