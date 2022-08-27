@@ -13,7 +13,7 @@ europe_prague = ZoneInfo("Europe/Prague")
 # RethinkDB settings
 db_name = "blog_jirione"
 r = RethinkDB()
-rethinkdb_ip = "172.19.38.53"
+rethinkdb_ip = "localhost"
 rethinkdb_port = 28015
 conn = r.connect(rethinkdb_ip, rethinkdb_port, db=db_name)
 topics = r.table("topics")
@@ -41,7 +41,6 @@ def migrate_db_from_rethinkdb_to_django():
         # Post.objects.all().delete()
         # Tag.objects.all().delete()
         dict_row = {}
-        id = posts.count().run(conn)
         for post in posts.order_by(r.asc("when")).run(conn):
             dict_row["title_cze"] = post["header"]["cze"]
             dict_row["content_cze"] = post["content"]["cze"]
