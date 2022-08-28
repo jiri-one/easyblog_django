@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load custom_template_filters %}
+
+{% block content %}
+<div class="titulek">{{ post.title_cze }}</div>
+<div class="meta"><div class="zarazen_do">Tagy: {{ post.tags|tags_html|safe }} — {{ post.author }}, {{ post.pub_time|date }} @ {{ post.pub_time|time:"H:i" }}
+</div></div>
+{{ post.content_cze|safe }}<br>
+<div class="postend">• • •</div>
+
+{% if post.comments.count > 0 %}
+	<div id="komentare"><div class="comment_title">Komentáře:</div></div>
+	{% for comment in post.comments.all %}
+		<div class="comment_header">
+		<b>{{ comment.title }}</b>
+		<br>
+		Komentář od <b>{{ comment.nick }}</b> — {{ comment.pub_time|date}} @ {{ comment.pub_time|time:"H:i" }}
+		</div>
+		{{ comment.content }}<br><br>
+	{% endfor %}
+{% endif %}
+<hr>
+<div class="comment_title">Nový komentář:</div>
+<div class="comment_form">
+<form method="post" action="" accept-charset="UTF-8">
+	<label for="comment_header">Nadpis:</label><br>
+	<input type="text" required="required" name="comment_header" placeholder="Nadpis komentáře.."><br>
+
+	<label for="comment_nick">Nick:</label><br>
+	<input type="text" required="required" name="comment_nick" placeholder="Tvoje přezdívka.."><br>
+	
+	<label for="antispam">Antispam:</label><br>
+	<input type="text" required="required" name="antispam" placeholder="Napiš číslem pětku."><br>
+	
+	<label for="comment_content">Text komentáře:</label><br>
+	<textarea name="comment_content" required="required" placeholder="Napiš něco.." style="height:200px"></textarea><br>
+
+	<input type="submit" value="Odeslat">
+</form>
+</div>
+{% endblock %}

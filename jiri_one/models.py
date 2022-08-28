@@ -46,6 +46,7 @@ class Comment(models.Model):
     title = models.CharField("Comment title", max_length=100)
     content = models.TextField("Comment content")
     nick = models.CharField("Comment author - nick", max_length=20)
+    pub_time = models.DateTimeField("Comment time", auto_now_add=True)
     post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)
     
     def __str__(self):
