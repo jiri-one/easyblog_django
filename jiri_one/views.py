@@ -15,9 +15,9 @@ class PostListView(ListView):
     model = Post
     template_name = 'index.html'
     paginate_by = 10
-    page_kwarg = 'strana'
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # print(context["paginator"].page())
-        return context
+    
+    def get(self, request, *args, **kwargs):
+        if 'strana' in kwargs:
+            self.page_kwarg = 'strana'
+        return super().get(request, *args, **kwargs)
