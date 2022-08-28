@@ -3,7 +3,7 @@
 
 {% block content %}
 
-{% for post in posts %}
+{% for post in page_obj %}
      {% ifchanged post.pub_time|date %} 
           <div class="date">{{ post.pub_time|date }}</div>
      {% endifchanged %}
@@ -15,5 +15,4 @@
      <div class="feedback">Počet komentářů: {{ post.comments.count }}</div> 
      <div class="postend">• • •</div>
 {% endfor %}
-
 {% endblock %}

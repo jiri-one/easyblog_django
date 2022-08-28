@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from jiri_one.models import Post, Tag, Comment
 from django.views.generic.detail import DetailView
+from django.views.generic.list import ListView
 
 class PostDetailView(DetailView):
     model = Post
@@ -10,7 +11,7 @@ class PostDetailView(DetailView):
     template_name = 'post.html'
 
 
-def index(request):
-    posts = Post.objects.all()
-    context = {'posts': posts}
-    return render(request, 'index.html', context)
+class PostListView(ListView):
+    model = Post
+    template_name = 'index.html'
+    paginate_by = 10
