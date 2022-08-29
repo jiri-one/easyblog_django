@@ -46,7 +46,7 @@ def migrate_db_from_rethinkdb_to_django():
             dict_row["content_cze"] = post["content"]["cze"]
             dict_row["pub_time"] = datetime.strptime(post["when"], "%Y-%m-%d %H:%M:%S").astimezone(europe_prague)
             # dict_row["mod_time"] = ...
-            dict_row["author"] = Author.objects.get(id=1)
+            dict_row["author"], _ = Author.objects.get_or_create(nick="Jiří", defaults={"nick": "Jiří", "first_name": "Jiří", "last_name": "Němec"})
             tags = []
             for tag in post["topics"]["cze"].split(";")[:-1]:
                 topic = list(topics.filter(r.row["topic"]["cze"] == tag).run(conn))[0]
