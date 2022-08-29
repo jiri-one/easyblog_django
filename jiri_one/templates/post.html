@@ -23,14 +23,12 @@
 <div class="comment_title">Nový komentář:</div>
 <div class="comment_form">
 <form method="post" action="" accept-charset="UTF-8">
+	{% csrf_token %}
 	<label for="comment_header">Nadpis:</label><br>
 	<input type="text" required="required" name="comment_header" placeholder="Nadpis komentáře.."><br>
 
 	<label for="comment_nick">Nick:</label><br>
 	<input type="text" required="required" name="comment_nick" placeholder="Tvoje přezdívka.."><br>
-	
-	<label for="antispam">Antispam:</label><br>
-	<input type="text" required="required" name="antispam" placeholder="Napiš číslem pětku."><br>
 	
 	<label for="comment_content">Text komentáře:</label><br>
 	<textarea name="comment_content" required="required" placeholder="Napiš něco.." style="height:200px"></textarea><br>
