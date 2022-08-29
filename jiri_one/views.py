@@ -20,4 +20,8 @@ class PostListView(ListView):
     def get(self, request, *args, **kwargs):
         if 'strana' in kwargs:
             self.page_kwarg = 'strana'
+        if 'tag' in kwargs:
+            tag = Tag.objects.get(url_cze=kwargs["tag"])
+            self.queryset = self.model.objects.filter(tags__exact=tag).all()
         return super().get(request, *args, **kwargs)
+    

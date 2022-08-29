@@ -32,9 +32,9 @@
 <div class="topics">
 {% for tag in tags %}
 	{% if forloop.last %}
-		<a href="{{ tag.url_cze }}">{{ tag.name_cze }}</a>
+		<a href="/tag/{{ tag.url_cze }}">{{ tag.name_cze }}</a>
 	{% else %}
-		<a style="border-bottom: 1px solid #3c67be;" href="{{ tag.url_cze }}">{{ tag.name_cze }}</a>
+		<a style="border-bottom: 1px solid #3c67be;" href="/tag/{{ tag.url_cze }}">{{ tag.name_cze }}</a>
 	{% endif %}
 {% endfor %}
 </div><!-- .topics-->
