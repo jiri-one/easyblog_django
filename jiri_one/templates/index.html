@@ -18,19 +18,19 @@
 
 <div class="pages">
 {% if page_obj.has_next and page_obj.number == 1 and "page" in request.path %}
-     <a href="{{ request.path|rm_pg_nr }}/2">Další strana</a>
+     <a href="/{{ request.path|rm_pg_nr }}/2">Další strana</a>
 {% elif page_obj.has_next and page_obj.number == 1 and "strana" in request.path %}
-     <a href="{{ request.path|rm_pg_nr }}/2">Další strana</a>
+     <a href="/{{ request.path|rm_pg_nr }}/2">Další strana</a>
 {% elif page_obj.has_next and page_obj.number == 1 %}
-     <a href="{{ request.path }}/strana/2">Další strana</a>
+     <a href="strana/2">Další strana</a>
 {% else %}
      {% for site in page_obj.paginator.page_range %}
           {% if site == 1 %}
-               <a href="{{ request.path|rm_pg_nr }}/1">[Zpět na index]</a>         
+               <a href="/{{ request.path|rm_pg_nr }}/1">[Zpět na index]</a>         
           {% elif site == page_obj.number %}
-               <a href="{{ request.path|rm_pg_nr }}/{{ site }}">[_]</a> 
+               <a href="/{{ request.path|rm_pg_nr }}/{{ site }}">[_]</a> 
           {% else %}
-               <a href="{{ request.path|rm_pg_nr }}/{{ site }}">{{ site }}</a> 
+               <a href="/{{ request.path|rm_pg_nr }}/{{ site }}">{{ site }}</a> 
           {% endif %}
      {% endfor %}
 {% endif %}
