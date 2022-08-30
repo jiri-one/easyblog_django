@@ -12,6 +12,8 @@ urlpatterns = [
     path('search/<str:search>/', views.PostListView.as_view()),
     path('hledej/<str:hledej>/', views.PostListView.as_view()),
     path('search/<str:search>/strana/<int:strana>/', views.PostListView.as_view()),
+    path('search/<str:search>/page/<int:page>/', views.PostListView.as_view()),
+    path('hledej/<str:hledej>/strana/<int:strana>/', views.PostListView.as_view()),
     path('hledej/<str:hledej>/page/<int:page>/', views.PostListView.as_view()),
     path('<slug:url_cze>/', views.PostDetailView.as_view()),
 ]
