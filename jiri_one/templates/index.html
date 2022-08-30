@@ -2,37 +2,45 @@
 {% load custom_template_filters %}
 
 {% block content %}
+<b>
+{{ where_am_i }}
+</b><br><br>
 
-{% for post in page_obj %}
-     {% ifchanged post.pub_time|date %} 
-          <div class="date">{{ post.pub_time|date }}</div>
-     {% endifchanged %}
-     <div class="titulek"><a href="/{{ post.url_cze }}">{{ post.title_cze }}</a></div>
-     <div class="meta">
-          <div class="zarazen_do">Tagy: {{ post.tags|tags_html|safe }} — {{ post.author }} @ {{ post.pub_time|time:"H:i" }}</div>
-     </div>
-     <div class="obsah">{{ post.content_cze|safe }}</div>
-     <div class="feedback">Počet komentářů: {{ post.comments.count }}</div> 
-     <div class="postend">• • •</div>
-{% endfor %}
-
-<div class="pages">
-{% if page_obj.has_next and page_obj.number == 1 and "page" in request.path %}
-     <a href="/{{ request.path|rm_pg_nr }}/2">Další strana</a>
-{% elif page_obj.has_next and page_obj.number == 1 and "strana" in request.path %}
-     <a href="/{{ request.path|rm_pg_nr }}/2">Další strana</a>
-{% elif page_obj.has_next and page_obj.number == 1 %}
-     <a href="strana/2">Další strana</a>
-{% else %}
-     {% for site in page_obj.paginator.page_range %}
-          {% if site == 1 %}
-               <a href="/{{ request.path|rm_pg_nr }}/1">[Zpět na index]</a>         
-          {% elif site == page_obj.number %}
-               <a href="/{{ request.path|rm_pg_nr }}/{{ site }}">[_]</a> 
-          {% else %}
-               <a href="/{{ request.path|rm_pg_nr }}/{{ site }}">{{ site }}</a> 
-          {% endif %}
+{% if page_obj %}
+     {% for post in page_obj %}
+          {% ifchanged post.pub_time|date %} 
+               <div class="date">{{ post.pub_time|date }}</div>
+          {% endifchanged %}
+          <div class="titulek"><a href="/{{ post.url_cze }}">{{ post.title_cze }}</a></div>
+          <div class="meta">
+               <div class="zarazen_do">Tagy: {{ post.tags|tags_html|safe }} — {{ post.author }} @ {{ post.pub_time|time:"H:i" }}</div>
+          </div>
+          <div class="obsah">{{ post.content_cze|safe }}</div>
+          <div class="feedback">Počet komentářů: {{ post.comments.count }}</div> 
+          <div class="postend">• • •</div>
      {% endfor %}
+{% else %}
+Nic nenalezeno.
+{% endif %}
+<div class="pages">
+{% if page_obj.paginator.num_pages > 1 %}
+     {% if page_obj.has_next and page_obj.number == 1 and "page" in request.path %}
+          <a href="/{{ request.path|rm_pg_nr }}/2">Další strana</a>
+     {% elif page_obj.has_next and page_obj.number == 1 and "strana" in request.path %}
+          <a href="/{{ request.path|rm_pg_nr }}/2">Další strana</a>
+     {% elif page_obj.has_next and page_obj.number == 1 %}
+          <a href="strana/2">Další strana</a>
+     {% else %}
+          {% for site in page_obj.paginator.page_range %}
+               {% if site == 1 %}
+                    <a href="/{{ request.path|rm_pg_nr }}/1">[Zpět na index]</a>         
+               {% elif site == page_obj.number %}
+                    <a href="/{{ request.path|rm_pg_nr }}/{{ site }}">[_]</a> 
+               {% else %}
+                    <a href="/{{ request.path|rm_pg_nr }}/{{ site }}">{{ site }}</a> 
+               {% endif %}
+          {% endfor %}
+     {% endif %}
 {% endif %}
 </div>
 

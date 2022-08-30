@@ -1,4 +1,4 @@
-from jiri_one.models import Post, Comment
+from jiri_one.models import Post, Comment, Tag
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django.db.models import Q
@@ -27,14 +27,26 @@ class PostListView(ListView):
         if 'strana' in kwargs:
             self.page_kwarg = 'strana'
         if 'tag' in kwargs:
+            self.tag = Tag.objects.get(url_cze=kwargs["tag"])
             self.queryset = self.model.objects.filter(tags__url_cze=kwargs["tag"]).all()
         if 'search' in kwargs or 'hledej' in kwargs:
-            if not (searched_word := kwargs.get("search")):
-                searched_word = kwargs.get("hledej")
+            if kwargs.get("search"):
+                self.searched_word = kwargs.get("search")
+            elif kwargs.get("hledej"):
+                self.searched_word = kwargs.get("hledej")
             self.queryset = self.model.objects.filter(
-                Q(content_cze__icontains=searched_word) 
-                | Q(title_cze__icontains=searched_word))
+                Q(content_cze__icontains=self.searched_word) 
+                | Q(title_cze__icontains=self.searched_word))
         return super().get(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if hasattr(self, "tag"):
+            context["where_am_i"] = f'Příspěvky z tagu "{self.tag}":'
+        elif hasattr(self, "searched_word"):
+            context["where_am_i"] = f'Příspěvky z vyhledávání slova "{self.searched_word}":'
+            
+        return context
     
     def post(self, request, *args, **kwargs):
         searched_word = request.POST.get('search') 
