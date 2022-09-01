@@ -2,9 +2,12 @@
 {% load custom_template_filters %}
 
 {% block content %}
-<b>
-{{ where_am_i }}
-</b><br><br>
+
+{% if tag %}
+     <b>Příspěvky z tagu "{{ tag }}":</b><br><br>
+{% elif searched_word %}
+     <b>Výsledky vyhledávání slova "{{ searched_word }}":</b><br><br>  
+{% endif %}
 
 {% if page_obj %}
      {% for post in page_obj %}

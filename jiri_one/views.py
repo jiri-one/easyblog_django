@@ -42,10 +42,9 @@ class PostListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if hasattr(self, "tag"):
-            context["where_am_i"] = f'Příspěvky z tagu "{self.tag}":'
+            context["tag"] = self.tag
         elif hasattr(self, "searched_word"):
-            context["where_am_i"] = f'Příspěvky z vyhledávání slova "{self.searched_word}":'
-            
+            context["searched_word"] = self.searched_word
         return context
     
     def post(self, request, *args, **kwargs):
