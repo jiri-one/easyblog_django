@@ -3,6 +3,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django.db.models import Q
 from django.shortcuts import redirect
+from django.http import HttpResponseForbidden
 
 class PostDetailView(DetailView):
     model = Post
@@ -11,11 +12,21 @@ class PostDetailView(DetailView):
     template_name = 'post.html'
     
     def post(self, request, *args, **kwargs):
+        # antispam part
+        try:
+            five = int(request.POST.get('antispam'))
+            if five != 5:
+                raise ValueError
+        except ValueError:
+            return HttpResponseForbidden("Musíte správně vyplnit pole Anitspam!")
+        # comment save part
         header = request.POST.get('comment_header')
         nick = request.POST.get('comment_nick')
         content = request.POST.get('comment_content')
         Comment.objects.create(post=self.get_object(), title=header, nick=nick,content=content)
         return redirect(request.path)
+
+            
 
 
 class PostListView(ListView):
