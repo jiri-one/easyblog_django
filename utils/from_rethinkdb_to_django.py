@@ -5,7 +5,7 @@ from os import environ
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from rethinkdb import RethinkDB
-import asyncio
+
 
 # timezone settings
 europe_prague = ZoneInfo("Europe/Prague")
@@ -35,13 +35,14 @@ def django_context():
         sys_path.remove(django_dir)
         del application
 
+
 def migrate_db_from_rethinkdb_to_django():
     with django_context():
         from jiri_one.models import Post, Tag, Author
         # Post.objects.all().delete()
         # Tag.objects.all().delete()
-        dict_row = {}
         for post in posts.order_by(r.asc("when")).run(conn):
+            dict_row = {}
             dict_row["title_cze"] = post["header"]["cze"]
             dict_row["content_cze"] = post["content"]["cze"]
             dict_row["pub_time"] = datetime.strptime(post["when"], "%Y-%m-%d %H:%M:%S").astimezone(europe_prague)
