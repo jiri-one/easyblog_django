@@ -3,10 +3,11 @@ from django.utils.text import slugify
 from django.core.validators import MinValueValidator
 from datetime import datetime
 
+
 class Post(models.Model):
     def get_next_id():
         return Post.objects.count() + 1
-    
+
     id = models.IntegerField(primary_key=True, validators=[MinValueValidator(1)], editable=False, default=get_next_id)
     title_cze = models.CharField("Post title CZE", unique=True, max_length=100)
     title_eng = models.CharField("Post title ENG", unique=True, max_length=100, blank=True, null=True, default=None)
@@ -19,13 +20,13 @@ class Post(models.Model):
     mod_time = models.DateTimeField("Last modification time", auto_now=True)
     author = models.ForeignKey("Author", on_delete=models.PROTECT)
     tags = models.ManyToManyField("Tag")
-    
+
     def save(self, *args, **kwargs):
         self.url_cze = slugify(self.title_cze)
         if self.title_eng is not None:
             self.url_eng = slugify(self.title_eng)
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         return self.title_cze
 
@@ -48,7 +49,7 @@ class Comment(models.Model):
     nick = models.CharField("Comment author - nick", max_length=20)
     pub_time = models.DateTimeField("Comment time", auto_now_add=True)
     post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)
-    
+
     def __str__(self):
         return f"{self.title} - {self.nick}"
 
@@ -61,7 +62,7 @@ class Tag(models.Model):
     url_cze = models.SlugField("Tag URL CZE", max_length=25, unique=True, editable=False)
     url_eng = models.SlugField("Tag URL ENG", max_length=25, blank=True, null=True, editable=False, default=None)
     order = models.IntegerField()
-    
+
     def save(self, *args, **kwargs):
         self.url_cze = slugify(self.name_cze)
         if self.name_eng is not None:
