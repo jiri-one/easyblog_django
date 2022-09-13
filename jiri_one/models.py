@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator
-from datetime import datetime
+from django.utils import timezone
 
 
 class Post(models.Model):
@@ -15,7 +15,7 @@ class Post(models.Model):
     content_eng = models.TextField("Post content ENG", blank=True, null=True, default=None)
     url_cze = models.SlugField("Post URL CZE", unique=True, max_length=100, editable=False)
     url_eng = models.SlugField("Post URL ENG", unique=True, max_length=100, blank=True, null=True, editable=False, default=None)
-    pub_time = models.DateTimeField("Fist release time", editable=False, default=datetime.now)
+    pub_time = models.DateTimeField("Fist release time", editable=False, default=timezone.now)
     # for pub_time I can use auto_now_add , but it is not working for import, where is another time
     mod_time = models.DateTimeField("Last modification time", auto_now=True)
     author = models.ForeignKey("Author", on_delete=models.PROTECT)
