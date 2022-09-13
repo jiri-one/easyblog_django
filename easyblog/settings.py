@@ -16,16 +16,7 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-with open(BASE_DIR / "secret_key.txt") as file:
-    SECRET_KEY = file.read().strip()
-
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -71,21 +62,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'easyblog.wsgi.application'
 
-# settings for local development
-DEBUG = True
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'OPTIONS': {
-            'service': 'easyblog_service',
-            'passfile': '.easyblog_pgpass',
-        },
-    }
-}
-
-
 SYSTEM_ENV = os.environ.get('SYSTEM_ENV', None)
-if SYSTEM_ENV == 'PRODUCTION':
+if SYSTEM_ENV == 'PRODUCTION': # settings for production server
+    with open(BASE_DIR / "secret_key.txt") as file:
+        SECRET_KEY = file.read().strip()
     DEBUG = False
     SECURE_HSTS_SECONDS = 1
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -98,7 +78,7 @@ if SYSTEM_ENV == 'PRODUCTION':
         '/srv/http/venvs/venv_jiri_one/lib/python3.10/site-packages/django/contrib/admin/static',
     ]
 
-elif SYSTEM_ENV == 'GITHUB_WORKFLOW':
+elif SYSTEM_ENV == 'GITHUB_WORKFLOW': # settings for github actions
     DEBUG = True
     SECRET_KEY = 'TESTING_KEY' # hardcoded key for testing on github
     DATABASES = {
@@ -109,6 +89,20 @@ elif SYSTEM_ENV == 'GITHUB_WORKFLOW':
             'PASSWORD': 'postgres',
             'HOST': '127.0.0.1',
             'PORT': '5432',
+        }
+    }
+
+else: # settings for local development
+    with open(BASE_DIR / "secret_key.txt") as file:
+        SECRET_KEY = file.read().strip()
+    DEBUG = True
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'OPTIONS': {
+                'service': 'easyblog_service',
+                'passfile': '.easyblog_pgpass',
+            },
         }
     }
 
