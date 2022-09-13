@@ -24,9 +24,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 with open(BASE_DIR / "secret_key.txt") as file:
     SECRET_KEY = file.read().strip()
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
 ALLOWED_HOSTS = []
 
 
@@ -74,10 +71,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'easyblog.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
+# settings for local development
+DEBUG = True
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -87,6 +82,35 @@ DATABASES = {
         },
     }
 }
+
+
+SYSTEM_ENV = os.environ.get('SYSTEM_ENV', None)
+if SYSTEM_ENV == 'PRODUCTION':
+    DEBUG = False
+    SECURE_HSTS_SECONDS = 1
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_PRELOAD = True
+    STATIC_ROOT = "/srv/http/virtual/jiri.one/static"
+    STATICFILES_DIRS = [
+        '/srv/http/venvs/venv_jiri_one/lib/python3.10/site-packages/django/contrib/admin/static',
+    ]
+
+elif SYSTEM_ENV == 'GITHUB_WORKFLOW':
+    DEBUG = True
+    SECRET_KEY = 'TESTING_KEY' # hardcoded key for testing on github
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'github_actions',
+            'USER': 'postgres',
+            'PASSWORD': 'postgres',
+            'HOST': '127.0.0.1',
+            'PORT': '5432',
+        }
+    }
 
 
 # Password validation
