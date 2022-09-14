@@ -5,7 +5,7 @@ from django.utils import timezone
 
 
 class Post(models.Model):
-    def get_next_id():
+    def get_next_id(): # type: ignore
         return Post.objects.count() + 1
 
     id = models.IntegerField(primary_key=True, validators=[MinValueValidator(1)], editable=False, default=get_next_id)

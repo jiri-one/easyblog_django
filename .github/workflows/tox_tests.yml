@@ -1,0 +1,36 @@
+name: Tox Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tox_tests:
+    name: Run Tox Tests - PyTest, MyPy, PyFlakes
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        tox_env: [py310, mypy, pyflakes]
+    services:
+      db:
+        image: postgres:14.5-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: github_actions
+        ports:
+          - 5432:5432
+        options: --mount type=tmpfs,destination=/var/lib/postgresql/data --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run Tox
+        id: test
+        uses: fedora-python/tox-github-action@master
+        with:
+          tox_env: ${{ matrix.tox_env }}
+        env:
+          SYSTEM_ENV: GITHUB_WORKFLOW
