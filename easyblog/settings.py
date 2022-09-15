@@ -78,6 +78,15 @@ if SYSTEM_ENV == 'PRODUCTION': # settings for production server
     STATICFILES_DIRS = [
         '/srv/http/venvs/venv_jiri_one/lib/python3.10/site-packages/django/contrib/admin/static',
     ]
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'OPTIONS': { # type: ignore
+                'service': 'easyblog_service',
+                'passfile': '.easyblog_pgpass',
+            },
+        }
+    }
 
 elif SYSTEM_ENV == 'GITHUB_WORKFLOW': # settings for github actions
     DEBUG = True
