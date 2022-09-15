@@ -16,7 +16,7 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['']
 
 # Application definition
 
@@ -66,6 +66,7 @@ SYSTEM_ENV = os.environ.get('SYSTEM_ENV', None)
 if SYSTEM_ENV == 'PRODUCTION': # settings for production server
     with open(BASE_DIR / "secret_key.txt") as file:
         SECRET_KEY = file.read().strip()
+    ALLOWED_HOSTS = ['.jiri.one']
     DEBUG = False
     SECURE_HSTS_SECONDS = 1
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -77,6 +78,15 @@ if SYSTEM_ENV == 'PRODUCTION': # settings for production server
     STATICFILES_DIRS = [
         '/srv/http/venvs/venv_jiri_one/lib/python3.10/site-packages/django/contrib/admin/static',
     ]
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'OPTIONS': { # type: ignore
+                'service': 'easyblog_service',
+                'passfile': '.easyblog_pgpass',
+            },
+        }
+    }
 
 elif SYSTEM_ENV == 'GITHUB_WORKFLOW': # settings for github actions
     DEBUG = True
@@ -99,7 +109,7 @@ else: # settings for local development
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'OPTIONS': {
+            'OPTIONS': { # type: ignore
                 'service': 'easyblog_service',
                 'passfile': '.easyblog_pgpass',
             },
