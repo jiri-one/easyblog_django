@@ -23,8 +23,7 @@ jobs:
           script: |
             cd ${{ secrets.DEST_PATH }}
             git pull R main
-            git reset --hard R/main
-            poetry install --with production
+            poetry install --no-root --with production
             poetry run python manage.py collectstatic --noinput
             systemctl --user restart gunicorn_jiri_one.socket
 
