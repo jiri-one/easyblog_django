@@ -1,0 +1,33 @@
+name: Django Deploy CD
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+      # don't run locally
+        if: ${{ !env.ACT }}
+        uses: appleboy/ssh-action@master
+        env:
+          SYSTEM_ENV: "PRODUCTION"
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+            passphrase: ${{ secrets.PASSPHRASE }}
+          envs: SYSTEM_ENV
+          script: |
+            cd ${{ secrets.DEST_PATH }}
+            git pull R main
+            git reset --hard R/main
+            poetry install --with production
+            poetry run python manage.py collectstatic --noinput
+            systemctl --user restart gunicorn_jiri_one.socket
+
+
+
+            
