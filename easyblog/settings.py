@@ -76,7 +76,7 @@ if SYSTEM_ENV == 'PRODUCTION': # settings for production server
     SECURE_HSTS_PRELOAD = True
     STATIC_ROOT = "/srv/http/virtual/jiri.one/static"
     STATICFILES_DIRS = [
-        '/srv/http/venvs/venv_jiri_one/lib/python3.10/site-packages/django/contrib/admin/static',
+        '/srv/http/virtual/jiri.one/.venv/lib/python3.10/site-packages/django/contrib/admin/static',
     ]
     DATABASES = {
         'default': {
