@@ -10,8 +10,8 @@ packages = [{include = "easyblog_django"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 Django = "^4.1.1"
-psycopg2-binary = "^2.9.3"
 beautifulsoup4 = "^4.11.1"
+psycopg2 = "^2.9.3"
 
 [tool.poetry.group.tests]
 optional = true
