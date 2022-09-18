@@ -5,43 +5,41 @@ on:
       - 'v*.*.*'
 jobs:
   deploy:
-    - name: Deploy to server
-      runs-on: ubuntu-latest
-      env:
-        SSH_USER: ${{ secrets.USERNAME }}
-        SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        SSH_HOST: ${{ secrets.HOST }}
-        PASSPHRASE: ${{ secrets.PASSPHRASE }}
+    name: Deploy to server
+    runs-on: ubuntu-latest
+    env:
+      SSH_USER: ${{ secrets.USERNAME }}
+      SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_HOST: ${{ secrets.HOST }}
+      PASSPHRASE: ${{ secrets.PASSPHRASE }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      
+      - name: Install sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get sshpass
+      
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$SSH_KEY" > ~/.ssh/staging.key
+          chmod 600 ~/.ssh/staging.key
+          cat >>~/.ssh/config <<END
+          Host staging
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/staging.key
+            StrictHostKeyChecking no
+          END
 
-      steps:
+      - name: Check out the source
+        run: sshpass -p $PASSPHRASE ssh staging 'cd ${{ secrets.DEST_PATH }} && git fetch && git reset --hard R/main poetry install --no-root --with production && poetry run python manage.py collectstatic --noinput'
 
-      - steps:
-        - name: Check out repository code
-          uses: actions/checkout@v3
-        - name: Install sshpass
-          run: |
-            sudo apt-get update
-            sudo apt-get sshpass
-
-        - name: Configure SSH
-          run: |
-            mkdir -p ~/.ssh/
-            echo "$SSH_KEY" > ~/.ssh/staging.key
-            chmod 600 ~/.ssh/staging.key
-            cat >>~/.ssh/config <<END
-            Host staging
-              HostName $SSH_HOST
-              User $SSH_USER
-              IdentityFile ~/.ssh/staging.key
-              StrictHostKeyChecking no
-            END
-
-        - name: Check out the source
-          run: sshpass -p $PASSPHRASE ssh staging 'cd ${{ secrets.DEST_PATH }} && git fetch && git reset --hard R/main poetry install --no-root --with production && poetry run python manage.py collectstatic --noinput'
-
-        - name: Restart the gunicorn server
-          if: ${{ always() }}
-          run: sshpass -p $PASSPHRASE ssh staging 'systemctl --user restart gunicorn_jiri_one.socket'
+      - name: Restart the gunicorn server
+        if: ${{ always() }}
+        run: sshpass -p $PASSPHRASE ssh staging 'systemctl --user restart gunicorn_jiri_one.socket'
 
 
 
