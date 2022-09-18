@@ -8,14 +8,6 @@ jobs:
     name: Deploy to server
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v3
-      
-      - name: Install sshpass
-        run: |
-          sudo apt-get update
-          sudo apt-get install sshpass
-      
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh/
