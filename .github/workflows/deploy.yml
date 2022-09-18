@@ -19,7 +19,7 @@ jobs:
       - name: Install sshpass
         run: |
           sudo apt-get update
-          sudo apt-get sshpass
+          sudo apt-get install sshpass
       
       - name: Configure SSH
         run: |
@@ -38,7 +38,6 @@ jobs:
         run: sshpass -p $PASSPHRASE ssh staging 'cd ${{ secrets.DEST_PATH }} && git fetch && git reset --hard R/main poetry install --no-root --with production && poetry run python manage.py collectstatic --noinput'
 
       - name: Restart the gunicorn server
-        if: ${{ always() }}
         run: sshpass -p $PASSPHRASE ssh staging 'systemctl --user restart gunicorn_jiri_one.socket'
 
 
