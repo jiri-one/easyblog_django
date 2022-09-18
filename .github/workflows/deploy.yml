@@ -20,7 +20,7 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           port: ${{ secrets.PORT }}
           envs: SYSTEM_ENV
-          script: |
+          command: |
             cd ${{ secrets.DEST_PATH }}
             git pull R main
             poetry install --no-root --with production
