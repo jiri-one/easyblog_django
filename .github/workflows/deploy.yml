@@ -10,13 +10,14 @@ jobs:
       - name: Deploy to server
       # don't run locally
         if: ${{ !env.ACT }}
-        uses: appleboy/ssh-action@master
+        uses: garygrossgarten/github-action-ssh@release
         env:
           SYSTEM_ENV: "PRODUCTION"
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
+          privateKey: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
           port: ${{ secrets.PORT }}
           envs: SYSTEM_ENV
           script: |
