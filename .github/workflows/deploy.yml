@@ -35,7 +35,7 @@ jobs:
           END
 
       - name: Check out the source
-        run: sshpass -p $PASSPHRASE ssh staging 'cd ${{ secrets.DEST_PATH }} && git fetch && git reset --hard R/main poetry install --no-root --with production && poetry run python manage.py collectstatic --noinput'
+        run: sshpass -p $PASSPHRASE ssh staging 'cd ${{ secrets.DEST_PATH }} && git fetch && git reset --hard R/main && poetry install --no-root --with production && poetry run python manage.py collectstatic --noinput'
 
       - name: Restart the gunicorn server
         run: sshpass -p $PASSPHRASE ssh staging 'systemctl --user restart gunicorn_jiri_one.socket'
