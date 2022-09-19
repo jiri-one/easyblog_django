@@ -16,4 +16,5 @@ urlpatterns = [
     path('hledej/<str:hledej>/strana/<int:strana>/', views.PostListView.as_view()),
     path('hledej/<str:hledej>/page/<int:page>/', views.PostListView.as_view()),
     path('<slug:url_cze>/', views.PostDetailView.as_view()),
+    path('deploy_api/', views.deploy_api),
 ]

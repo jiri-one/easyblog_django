@@ -3,7 +3,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django.db.models import Q
 from django.shortcuts import redirect
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, HttpResponse
 
 
 class PostDetailView(DetailView):
@@ -62,3 +62,6 @@ class PostListView(ListView):
     def post(self, request, *args, **kwargs):
         searched_word = request.POST.get('search')
         return redirect(f'hledej/{searched_word}')
+
+def deploy_api(request):
+    return HttpResponse('pong')
