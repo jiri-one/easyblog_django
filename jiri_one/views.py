@@ -91,11 +91,11 @@ class DeployApiView(View):
             if req_ip_address in ip_network(valid_ip):
                 break
         else:
-            return HttpResponseForbidden('Permission denied.')
+            return HttpResponseForbidden('Bad IP address! Permission denied.')
         # check if request is signed with GITHUB_WEBHOOK_KEY
         header_signature = request.META.get('X-Hub-Signature-256')
         if header_signature is None:
-            return HttpResponseForbidden('Permission denied!')
+            return HttpResponseForbidden('Bad signature! Permission denied.')
         sha_name, signature = header_signature.split('=')
         if sha_name != 'sha256':
             return HttpResponseServerError('Operation not supported!', status=501)
@@ -103,7 +103,7 @@ class DeployApiView(View):
                         msg=force_bytes(request.body),
                         digestmod=sha256)
         if not hmac.compare_digest(force_bytes(mac.hexdigest()), force_bytes(signature)):
-            return HttpResponseForbidden('Permission denied!')
+            return HttpResponseForbidden('Incorrect signature! Permission denied.')
         # implement ping/pong with GitHub
         event = request.META.get('HTTP_X_GITHUB_EVENT', 'ping')
         if event == 'ping':
