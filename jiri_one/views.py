@@ -93,13 +93,13 @@ class DeployApiView(View):
         else:
             return HttpResponseForbidden('Bad IP address! Permission denied.')
         # check if request is signed with GITHUB_WEBHOOK_KEY
-        header_signature = request.META.get('X-Hub-Signature-256')
+        header_signature = request.META.get('HTTP_X_HUB_SIGNATURE_256')
         if header_signature is None:
             return HttpResponseForbidden('Bad signature! Permission denied.')
         sha_name, signature = header_signature.split('=')
         if sha_name != 'sha256':
             return HttpResponseServerError('Operation not supported!', status=501)
-        mac = hmac.new( force_bytes(settings.GITHUB_WEBHOOK_KEY),
+        mac = hmac.new( force_bytes(settings.SECRET_GITHUB_KEY),
                         msg=force_bytes(request.body),
                         digestmod=sha256)
         if not hmac.compare_digest(force_bytes(mac.hexdigest()), force_bytes(signature)):
