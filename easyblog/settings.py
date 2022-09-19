@@ -66,6 +66,8 @@ SYSTEM_ENV = os.environ.get('SYSTEM_ENV', None)
 if SYSTEM_ENV == 'PRODUCTION': # settings for production server
     with open(BASE_DIR / "secret_key.txt") as file:
         SECRET_KEY = file.read().strip()
+    with open(BASE_DIR / "secret_github_key.txt") as file:
+        SECRET_GITHUB_KEY = file.read().strip()
     ALLOWED_HOSTS = ['.jiri.one']
     DEBUG = False
     SECURE_HSTS_SECONDS = 1

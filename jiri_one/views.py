@@ -1,12 +1,22 @@
 from jiri_one.models import Post, Comment, Tag
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
+from django.views import View
 from django.db.models import Q
 from django.shortcuts import redirect
-from django.http import HttpResponseForbidden, HttpResponse
+from django.http import HttpResponseForbidden, HttpResponseServerError, HttpRequest, HttpResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.encoding import force_bytes
+from django.conf import settings
+from hashlib import sha256
+import hmac
+from ipaddress import ip_address, ip_network
+import httpx
 
 
 class PostDetailView(DetailView):
+    """Class for showing one post/entry."""
     model = Post
     slug_field = 'url_cze'
     slug_url_kwarg = 'url_cze'
@@ -32,11 +42,12 @@ class PostDetailView(DetailView):
 
 
 class PostListView(ListView):
+    """Main and the only one class to show index, tags and search results."""
     model = Post
     template_name = 'index.html'
     paginate_by = 10
 
-    def get(self, request, *args, **kwargs):
+    def get(self, request: HttpRequest, *args, **kwargs):
         if 'strana' in kwargs:
             self.page_kwarg = 'strana'
         if 'tag' in kwargs:
@@ -59,9 +70,44 @@ class PostListView(ListView):
             context["searched_word"] = self.searched_word
         return context
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: HttpRequest, *args, **kwargs):
         searched_word = request.POST.get('search')
         return redirect(f'hledej/{searched_word}')
 
-def deploy_api(request):
-    return HttpResponse('pong')
+# I need to desable csrf tokens for this class, bacause it is POST from Github, not from protected form. In class based Views, the dispatch method is responsible for csrf.
+@method_decorator(csrf_exempt, name='dispatch')
+class DeployApiView(View):
+    """Class for automatic deployment new code from GitHub repository."""
+    def post(self, request: HttpRequest, *args, **kwargs):
+        # if I don't have SECRET_GITHUB_KEY, I can't compare anything
+        if not hasattr(settings, "SECRET_GITHUB_KEY"):
+            return HttpResponseServerError('Problem on server side!', status=501)
+        # Verify if request came from GitHub
+        forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        req_ip_address = ip_address(forwarded_for) # get real IP adress
+        whitelist = httpx.get('https://api.github.com/meta').json()['hooks']
+        # check if req_ip_adress is in ip network range
+        for valid_ip in whitelist:
+            if req_ip_address in ip_network(valid_ip):
+                break
+        else:
+            return HttpResponseForbidden('Permission denied.')
+        # check if request is signed with GITHUB_WEBHOOK_KEY
+        header_signature = request.META.get('X-Hub-Signature-256')
+        if header_signature is None:
+            return HttpResponseForbidden('Permission denied!')
+        sha_name, signature = header_signature.split('=')
+        if sha_name != 'sha256':
+            return HttpResponseServerError('Operation not supported!', status=501)
+        mac = hmac.new( force_bytes(settings.GITHUB_WEBHOOK_KEY),
+                        msg=force_bytes(request.body),
+                        digestmod=sha256)
+        if not hmac.compare_digest(force_bytes(mac.hexdigest()), force_bytes(signature)):
+            return HttpResponseForbidden('Permission denied!')
+        # implement ping/pong with GitHub
+        event = request.META.get('HTTP_X_GITHUB_EVENT', 'ping')
+        if event == 'ping':
+            return HttpResponse('pong')
+        else:
+            return HttpResponse("other")
+ 
