@@ -15,7 +15,7 @@ class Command(BaseCommand):
          # create RethinkDB connection and settings        
         rdb_ip = options['rdb_ip']
         rdb_port = options['rdb_port']
-        db_name = "blog_jirione" # hardcoded, because on all machines it it this name
+        db_name = "blog_jirione" # hardcoded, because on all machines it is this name
         r = RethinkDB()
         conn = r.connect(rdb_ip, rdb_port, db=db_name)  
            

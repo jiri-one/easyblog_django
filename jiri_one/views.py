@@ -12,6 +12,7 @@ from hashlib import sha256
 import hmac
 from ipaddress import ip_address, ip_network
 import httpx
+import json
 # internal imports
 from jiri_one.models import Post, Comment, Tag
 from jiri_one.management.commands.redeploy import Command
@@ -110,9 +111,14 @@ class DeployApiView(View):
         event = request.META.get('HTTP_X_GITHUB_EVENT', 'ping')
         if event == 'ping':
             return HttpResponse('pong')
-        else:
-            #call redeploy command
-            redeploy = Command()
-            redeploy.handle()
-            return HttpResponse("redeploy called")
+        elif event == 'push':
+            request_body = json.loads(request.body)
+            if "tags" in request_body["refs"]:
+                commit_with_tag = request_body["after"]
+                #call redeploy command
+                redeploy = Command()
+                redeploy.handle(commit=commit_with_tag)
+                return HttpResponse("redeploy called")
+            else:
+                return HttpResponse("Noticed, but it is not new tag to redeploy code.")
  

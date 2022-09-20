@@ -1,19 +1,32 @@
 from django.core.management.base import BaseCommand, CommandError
-from subprocess import check_call, CalledProcessError
+from subprocess import run, CalledProcessError
 from os import getcwd, chdir
+from datetime import datetime
 
 
 class Command(BaseCommand):
     help = 'Redeploy whole blog from GitHub code'
+    
+    def add_arguments(self, parser):
+        parser.add_argument('commit', type=str, nargs=1)
 
     def handle(self, *args, **options):
+        commit = options['commit']
         if getcwd() != '/srv/http/virtual/jiri.one':
             chdir('/srv/http/virtual/jiri.one')
         try: 
-            check_call(["git", "fetch"])
-            check_call(["git", "reset", "--hard", "R/main"])
-            check_call(["poetry", "run", "python", "manage.py", "collectstatic", "--no-input"])
-            check_call(["systemctl", "--user", "restart", "gunicorn_jiri_one.socket"])
+            run(["git", "fetch", "R", commit], check=True)
+            run(["git", "reset", "--hard", commit], check=True)
+            run(["poetry", "install" "--no-root" "--with" "production"], check=True)
+            run(["poetry", "run", "python", "manage.py", "collectstatic", "--no-input"], check=True)
+            run(["systemctl", "--user", "restart", "gunicorn_jiri_one.socket"], check=True)
         except CalledProcessError as e:
-            self.stdout.write(self.style.ERROR("Something went wrong in subprocess call!"))
+            with open("logs/deploy_error.txt", "w+") as file:
+                file.write(f"""
+                    Log datetime: {datetime.now().isoformat()}
+                    Command that was used to spawn the child process: {e.cmd}
+                    Output of the child process {e.stdout}
+                    Stderr out {e.stderr}
+                    """)
+            self.stdout.write(self.style.ERROR("Something went wrong in subprocess call! check logs/deploy_error.txt"))
             raise CommandError(e)
