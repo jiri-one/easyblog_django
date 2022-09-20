@@ -11,7 +11,7 @@ class Command(BaseCommand):
         parser.add_argument('commit', type=str, nargs=1)
 
     def handle(self, *args, **options):
-        commit = options['commit']
+        commit = options['commit'][0]
         if getcwd() != '/srv/http/virtual/jiri.one':
             chdir('/srv/http/virtual/jiri.one')
         try: 
