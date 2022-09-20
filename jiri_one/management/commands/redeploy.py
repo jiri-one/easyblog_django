@@ -15,11 +15,11 @@ class Command(BaseCommand):
         if getcwd() != '/srv/http/virtual/jiri.one':
             chdir('/srv/http/virtual/jiri.one')
         try: 
-            run(["git", "fetch", "R", commit], check=True)
-            run(["git", "reset", "--hard", commit], check=True)
-            run(["poetry", "install" "--no-root" "--with" "production"], check=True)
-            run(["poetry", "run", "python", "manage.py", "collectstatic", "--no-input"], check=True)
-            run(["systemctl", "--user", "restart", "gunicorn_jiri_one.socket"], check=True)
+            run(f"git fetch R {commit}", shell=True, check=True)
+            run(f"git reset --hard {commit}", shell=True, check=True)
+            run("poetry install --no-root --with production", shell=True, check=True)
+            run("poetry run python manage.py collectstatic --no-input", shell=True, check=True)
+            run("systemctl --user restart gunicorn_jiri_one.socket", shell=True, check=True)
         except CalledProcessError as e:
             with open("logs/deploy_error.txt", "w+") as file:
                 file.write(f"""
