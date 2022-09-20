@@ -1,4 +1,3 @@
-from jiri_one.models import Post, Comment, Tag
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django.views import View
@@ -13,6 +12,9 @@ from hashlib import sha256
 import hmac
 from ipaddress import ip_address, ip_network
 import httpx
+# internal imports
+from jiri_one.models import Post, Comment, Tag
+from jiri_one.management.commands.redeploy import Command
 
 
 class PostDetailView(DetailView):
@@ -109,5 +111,8 @@ class DeployApiView(View):
         if event == 'ping':
             return HttpResponse('pong')
         else:
-            return HttpResponse("other")
+            #call redeploy command
+            redeploy = Command()
+            redeploy.handle()
+            return HttpResponse("redeploy called")
  
