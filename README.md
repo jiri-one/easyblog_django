@@ -7,4 +7,5 @@ Tox based tests status (PyTest, MyPy, PyFlakes): [![Tox Tests](https://github.co
 
 Main features of blog:
 - extensively tested (PyTest and PyTest Django)
+- for code are used linters and checkers (MyPy and PyFlakes)
 - automatic deploy to server witch GitHub WebHooks (every tag is automaticaly deployed to server)
