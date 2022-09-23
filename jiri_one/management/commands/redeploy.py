@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from subprocess import run, CalledProcessError
 from os import getcwd, chdir
 from datetime import datetime
+from textwrap import dedent
 
 
 class Command(BaseCommand):
@@ -22,11 +23,11 @@ class Command(BaseCommand):
             run("systemctl --user restart gunicorn_jiri_one.socket", shell=True, check=True)
         except CalledProcessError as e:
             with open("logs/deploy_error.txt", "w+") as file:
-                file.write(f"""
+                file.write(dedent(f"""
                     Log datetime: {datetime.now().isoformat()}
                     Command that was used to spawn the child process: {e.cmd}
                     Output of the child process {e.stdout}
                     Stderr out {e.stderr}
-                    """)
+                    """))
             self.stdout.write(self.style.ERROR("Something went wrong in subprocess call! check logs/deploy_error.txt"))
             raise CommandError(e)

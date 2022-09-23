@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "easyblog-django"
-version = "0.1.0"
+version = "0.1.1"
 description = "Blog CMS for http://jiri.one site."
 authors = ["Jiří Němec <jiri1@duck.com>"]
 license = "GPL3"

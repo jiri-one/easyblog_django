@@ -16,7 +16,6 @@ import json
 from subprocess import Popen
 # internal imports
 from jiri_one.models import Post, Comment, Tag
-from jiri_one.management.commands.redeploy import Command
 
 
 class PostDetailView(DetailView):
