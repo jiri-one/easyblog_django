@@ -80,6 +80,13 @@ class PostListView(ListView):
 # I need to desable csrf tokens for this class, bacause it is POST from Github, not from protected form. In class based Views, the dispatch method is responsible for csrf.
 @method_decorator(csrf_exempt, name='dispatch')
 class DeployApiView(View):
+    def response_and_redeploy(self, commit_with_tag)
+        yield "redeploy called"
+        #call redeploy command
+        redeploy = Command()
+        redeploy.handle(commit=commit_with_tag)
+        return None
+    
     """Class for automatic deployment new code from GitHub repository."""
     def post(self, request: HttpRequest, *args, **kwargs):
         # if I don't have SECRET_GITHUB_KEY, I can't compare anything
@@ -115,10 +122,8 @@ class DeployApiView(View):
             request_body = json.loads(request.body)
             if "tags" in request_body["ref"]:
                 commit_with_tag = request_body["after"]
-                #call redeploy command
-                redeploy = Command()
-                redeploy.handle(commit=commit_with_tag)
-                return HttpResponse("redeploy called")
+                return HttpResponse(self.response_and_redeploy(commit_with_tag))          
             else:
                 return HttpResponse("Noticed, but it is not new tag to redeploy code.")
- 
+        # In case we receive an event that's not ping or push
+        return HttpResponse(status=204)
