@@ -8,10 +8,10 @@ class Command(BaseCommand):
     help = 'Redeploy whole blog from GitHub code'
     
     def add_arguments(self, parser):
-        parser.add_argument('commit', type=str, nargs=1)
+        parser.add_argument('commit', type=str)
 
     def handle(self, *args, **options):
-        commit = options['commit'][0]
+        commit = options['commit']
         if getcwd() != '/srv/http/virtual/jiri.one':
             chdir('/srv/http/virtual/jiri.one')
         try: 
