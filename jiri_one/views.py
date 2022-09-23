@@ -80,7 +80,7 @@ class PostListView(ListView):
 # I need to desable csrf tokens for this class, bacause it is POST from Github, not from protected form. In class based Views, the dispatch method is responsible for csrf.
 @method_decorator(csrf_exempt, name='dispatch')
 class DeployApiView(View):
-    def response_and_redeploy(self, commit_with_tag)
+    def response_and_redeploy(self, commit_with_tag):
         yield "redeploy called"
         #call redeploy command
         redeploy = Command()
