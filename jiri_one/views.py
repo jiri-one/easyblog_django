@@ -113,7 +113,7 @@ class DeployApiView(View):
             return HttpResponse('pong')
         elif event == 'push':
             request_body = json.loads(request.body)
-            if "tags" in request_body["refs"]:
+            if "tags" in request_body["ref"]:
                 commit_with_tag = request_body["after"]
                 #call redeploy command
                 redeploy = Command()
