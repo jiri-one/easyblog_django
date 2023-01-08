@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 import os
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,6 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'easycron',
 ]
 
 MIDDLEWARE = [
@@ -161,3 +163,18 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+EASYCRON_TASKS = [
+    {   
+        # name: name of the task, has to be unique, it's name for database and administration
+        # app: typically, folder with installed django app or if you need run django internal management command, you need to write whole module path, eg: 'app': django.core' for 'command': 'dumpdata' 
+        # command: has to be management command of app
+        # args: you can add some arguments for management command
+        # because every task is dict, you can use here your own keys (eg for note), because those will be ignored 
+        'name': 'name or short description',
+        'app': 'django.core', 
+        'command': 'dumpdata',
+        'args': '', # TODO: implement args
+        'schedule': timedelta(hours=6),
+    },
+]
