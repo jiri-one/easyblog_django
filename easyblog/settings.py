@@ -171,10 +171,10 @@ EASYCRON_TASKS = [
         # command: has to be management command of app
         # args: you can add some arguments for management command
         # because every task is dict, you can use here your own keys (eg for note), because those will be ignored 
-        'name': 'name or short description',
+        'name': 'dump sql',
         'app': 'django.core', 
         'command': 'dumpdata',
         'args': '', # TODO: implement args
-        'schedule': timedelta(hours=6),
+        'schedule': timedelta(seconds=3),
     },
 ]
