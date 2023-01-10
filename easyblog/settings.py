@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 import os
-from datetime import timedelta, datetime
+from datetime import timedelta
+# internal imports
+from .utils import jiri_one_db_file_name
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -169,14 +171,12 @@ EASYCRON_TASKS = [
         # name: name of the task, has to be unique, it's name for database and administration
         # app: typically, folder with installed django app or if you need run django internal management command, you need to write whole module path, eg: 'app': django.core' for 'command': 'dumpdata' 
         # command: has to be management command of app
-        # args: you can add some arguments for management command
+        # args: you can add some arguments for management command, it has to be list of string or you can use functions names
         # because every task is dict, you can use here your own keys (eg for note), because those will be ignored 
         'name': 'dump sql',
         'app': 'django.core', 
         'command': 'dumpdata',
-        'args': ['jiri_one',
-                 '-o',
-                 f'{datetime.now().strftime('%y-%m-%d_%H:%M')}'], # TODO: implement args
+        'args': ['jiri_one', '-o', jiri_one_db_file_name],
         'schedule': timedelta(seconds=3),
     },
 ]
