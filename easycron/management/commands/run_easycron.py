@@ -1,6 +1,7 @@
 import traceback
 import asyncio
 from time import sleep
+from types import FunctionType
 # django imports
 from django.core.management import find_commands, load_command_class, call_command
 from django.conf import settings
@@ -12,7 +13,13 @@ from easycron.models import TaskResult
 class Command(BaseCommand):
     help = 'Runs background tasks.'
     
-    def run_task(self, name, app, cmd, schedule):
+    def run_task(self, task):
+        name, app, cmd, schedule = task['name'], task['app'], task['command'], task['schedule']
+        args = []
+        for arg in task['args']:
+            if isinstance(arg, FunctionType):
+                arg = arg()
+            args.append(arg)
         while True:
             latest_run = TaskResult.objects.filter(name=name).order_by('started_at').last()
             if ( not latest_run ) or ( latest_run.started_at + schedule < timezone.now() ):
@@ -20,7 +27,7 @@ class Command(BaseCommand):
                 task_obj = TaskResult.objects.create(name=name)
                 try:
                     cmd_class = load_command_class(app, cmd)
-                    call_command(cmd_class)
+                    call_command(cmd_class, *args)
                 except ModuleNotFoundError as e: # TODO: more exceptions
                     output = e
                     # Mark task as failed
@@ -43,8 +50,8 @@ class Command(BaseCommand):
         tasks_results = dict()
         for task in getattr(settings, 'EASYCRON_TASKS', []):
             # asyncio.sleep(2)
-            name, app, cmd, schedule = task['name'], task['app'], task['command'], task['schedule']
-            tasks_results[name] = await loop.run_in_executor(None, self.run_task, name, app, cmd, schedule)
+            task_name = task['name']
+            tasks_results[task_name] = await loop.run_in_executor(None, self.run_task, task)
             # 
 
 
