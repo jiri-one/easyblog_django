@@ -1,9 +1,6 @@
-import traceback
 import asyncio
-from time import sleep
 from types import FunctionType
 # django imports
-from django.core.management import find_commands, load_command_class, call_command
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
@@ -14,9 +11,17 @@ class Command(BaseCommand):
     help = 'Delete old database backup files for jiri_one app'
         
     async def delete_old_db_files(self):
+        db_backup_dir = settings.DB_BACKUP_DIR
+        db_backup_files = sorted([file for file in db_backup_dir.iterdir()])
+        print(db_backup_files)
+        # if self.interactive:
+            
         
-
+    def add_arguments(self, parser):
+        parser.add_argument('interactive', type=bool, required=False, default=True)
+    
     def handle(self, *args, **options):
+        self.interactive = options['interactive']
         self.stdout.write(self.style.NOTICE('Deleting old database backup files begins'))
         start_time = timezone.now()
         asyncio.run(self.delete_old_db_files())

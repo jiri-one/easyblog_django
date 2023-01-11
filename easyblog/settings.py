@@ -165,6 +165,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DB_BACKUP_DIR = Path(__file__).parent / "db_backup"
 
 EASYCRON_TASKS = [
     {   
@@ -181,7 +182,7 @@ EASYCRON_TASKS = [
     },
     {
         'name': 'delete old db backups of jiri_one app',
-        'app': 'jiri_one.utils', 
+        'app': 'jiri_one', 
         'command': 'del_old_db_backups',
         'args': [],
         'schedule': timedelta(seconds=6),
