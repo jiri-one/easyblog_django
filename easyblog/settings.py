@@ -185,5 +185,5 @@ EASYCRON_TASKS = [
         'command': 'del_old_db_backups',
         'args': [],
         'schedule': timedelta(seconds=6),
-    }
+    },
 ]
