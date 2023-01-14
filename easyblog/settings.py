@@ -14,7 +14,7 @@ from pathlib import Path
 import os
 from datetime import timedelta
 # internal imports
-from jiri_one.utils import jiri_one_db_file_name
+from jiri_one.utils import jiri_one_db_file_rotate
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -177,7 +177,7 @@ EASYCRON_TASKS = [
         'name': 'backup db of jiri_one app to json',
         'app': 'django.core', 
         'command': 'dumpdata',
-        'args': ['jiri_one', '-o', jiri_one_db_file_name],
+        'args': ['jiri_one', '-o', jiri_one_db_file_rotate],
         'schedule': timedelta(seconds=3),
     },
     {
