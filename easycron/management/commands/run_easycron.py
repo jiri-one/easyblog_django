@@ -83,10 +83,5 @@ class Command(BaseCommand):
                 # result.save(update_fields=['finished_at', 'success', 'output'])
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.NOTICE('Temperature update has been started. There is lot of data to be updated, please be patient ...'))
-        start_time = timezone.now()
+        self.stdout.write(self.style.NOTICE('EasyCron has been started.'))
         asyncio.run(self.process_tasks())
-        time = timezone.now() - start_time
-        self.stdout.write(self.style.SUCCESS(f'Successfully have been writen/updated temperatures and it takes {time.seconds//60} minutes and {time.seconds%60} seconds.'))
-        # if self.not_updated > 0:
-        #     self.stdout.write(self.style.NOTICE(f'And {self.not_updated} temperatures were not updated.'))
