@@ -3,11 +3,12 @@ from pathlib import Path
 from django.conf import settings
 
 
-def create_new_file_name(new_file_name):
+def create_new_file_name(new_file_name: Path):
     counter = 1
     name = new_file_name.stem
+    suffix = new_file_name.suffix
     while True:
-        new_name = name + f" ({counter}).json"
+        new_name = name + f" ({counter}){suffix}"
         new_file_name = new_file_name.parent / new_name
         if new_file_name.exists():
             counter += 1
@@ -28,5 +29,4 @@ def jiri_one_db_file_rotate():
             new_file_name = create_new_file_name(new_file_name)
             print(new_file_name)
         lastest_file.rename(new_file_name)
-        assert not lastest_file.exists()
     return f"{str(db_backup_dir)}/db_jiri_one_latest.json"
