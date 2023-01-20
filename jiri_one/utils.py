@@ -27,6 +27,5 @@ def jiri_one_db_file_rotate():
         new_file_name = db_backup_dir / f'db_jiri_one_{time_part}.json'
         if new_file_name.exists():
             new_file_name = create_new_file_name(new_file_name)
-            print(new_file_name)
         lastest_file.rename(new_file_name)
     return f"{str(db_backup_dir)}/db_jiri_one_latest.json"

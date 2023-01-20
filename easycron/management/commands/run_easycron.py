@@ -18,7 +18,7 @@ class Command(BaseCommand):
     def run_task(self, task):
         name, app, cmd, schedule = task['name'], task['app'], task['command'], task['schedule']
         args = []
-        for arg in task['args']:
+        for arg in task.get('args', []):
             if isinstance(arg, FunctionType):
                 arg = arg()
             args.append(arg)
