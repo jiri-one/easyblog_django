@@ -15,7 +15,7 @@ class Command(BaseCommand):
         db_backup_files = sorted([file for file in db_backup_dir.iterdir() if "db_jiri_one" in file.name and file.is_file()])
         if len(db_backup_files) > 10:
             db_backup_files = sorted(db_backup_files)
-            del_files = db_backup_files[9:]
+            del_files = db_backup_files[10:]
             delete = True
             if self.interactive:
                 self.stdout.write(self.style.NOTICE(f'It was found {len(del_files)} files, those are {", ".join([file.name for file in del_files])}'))
@@ -29,9 +29,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.NOTICE('No more than 10 files were found, so there is nothing to delete.'))
         
     def add_arguments(self, parser):
-        parser.add_argument('interactive', action=BooleanOptionalAction)
+        parser.add_argument('--interactive', default=True, action=BooleanOptionalAction)
     
     def handle(self, *args, **options):
-        self.interactive = options.get('interactive', True)
+        self.interactive = options.get('interactive')
         self.stdout.write(self.style.NOTICE('Deleting old database backup files begins'))
         asyncio.run(self.delete_old_db_files())
