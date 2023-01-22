@@ -47,6 +47,13 @@ optional = true
 [tool.poetry.group.production.dependencies]
 gunicorn = "^20.1.0"
 
+[tool.poetry.group.coverage]
+optional = true
+
+[tool.poetry.group.coverage.dependencies]
+coverage-badge = "^1.1.0"
+setuptools = "^66.1.1"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

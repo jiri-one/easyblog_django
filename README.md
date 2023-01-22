@@ -5,6 +5,8 @@ PyTest based Django tests status: [![Django Tests (PyTest)](https://github.com/j
 
 Tox based tests status (PyTest, MyPy, PyFlakes): [![Tox Tests](https://github.com/jiri-one/easyblog_django/actions/workflows/tox_tests.yml/badge.svg)](https://github.com/jiri-one/easyblog_django/actions/workflows/tox_tests.yml)
 
+Tests coverage: [![Tests Coverage](https://github.com/jiri-one/easyblog_django/.github/coverage.svg)](https://github.com/jiri-one/easyblog_django/)
+
 Main features of blog:
 - extensively tested (PyTest and PyTest Django)
 - for code are used linters and checkers (MyPy and PyFlakes)
