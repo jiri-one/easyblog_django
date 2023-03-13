@@ -90,6 +90,9 @@ if SYSTEM_ENV == 'PRODUCTION': # settings for production server
             },
         }
     }
+    # where to save uploaded files
+    MEDIA_ROOT = os.getenv("MEDIA_ROOT", "/srv/http/virtual/jiri.one/files")
+    MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
 
 elif SYSTEM_ENV == 'GITHUB_WORKFLOW': # settings for github actions
     DEBUG = True
