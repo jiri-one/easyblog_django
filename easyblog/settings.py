@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'prose',
 ]
 
 MIDDLEWARE = [
@@ -45,7 +46,7 @@ ROOT_URLCONF = 'easyblog.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates", ],
         'APP_DIRS': True,
         'OPTIONS': {
             'debug': True,
@@ -89,6 +90,9 @@ if SYSTEM_ENV == 'PRODUCTION': # settings for production server
             },
         }
     }
+    # where to save uploaded files
+    MEDIA_ROOT = os.getenv("MEDIA_ROOT", "/srv/http/virtual/jiri.one/files")
+    MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
 
 elif SYSTEM_ENV == 'GITHUB_WORKFLOW': # settings for github actions
     DEBUG = True
