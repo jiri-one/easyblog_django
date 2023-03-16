@@ -16,59 +16,59 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = ["127.0.0.1"]
 
 # Application definition
 
 INSTALLED_APPS = [
-    'jiri_one.apps.JiriOneConfig',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    "jiri_one.apps.JiriOneConfig",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'easyblog.urls'
+ROOT_URLCONF = "easyblog.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'debug': True,
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'jiri_one.context_processors.tags_to_base',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "debug": True,
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "jiri_one.context_processors.tags_to_base",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'easyblog.wsgi.application'
+WSGI_APPLICATION = "easyblog.wsgi.application"
 
-SYSTEM_ENV = os.environ.get('SYSTEM_ENV', None)
-if SYSTEM_ENV == 'PRODUCTION': # settings for production server
+SYSTEM_ENV = os.environ.get("SYSTEM_ENV", None)
+if SYSTEM_ENV == "PRODUCTION":  # settings for production server
     with open(BASE_DIR / "secret_key.txt") as file:
         SECRET_KEY = file.read().strip()
     with open(BASE_DIR / "secret_github_key.txt") as file:
         SECRET_GITHUB_KEY = file.read().strip()
-    ALLOWED_HOSTS = ['.jiri.one']
+    ALLOWED_HOSTS = [".jiri.one"]
     DEBUG = False
     SECURE_HSTS_SECONDS = 1
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -78,42 +78,42 @@ if SYSTEM_ENV == 'PRODUCTION': # settings for production server
     SECURE_HSTS_PRELOAD = True
     STATIC_ROOT = "/srv/http/virtual/jiri.one/static"
     STATICFILES_DIRS = [
-        '/srv/http/virtual/jiri.one/.venv/lib/python3.10/site-packages/django/contrib/admin/static',
+        "/srv/http/virtual/jiri.one/.venv/lib/python3.10/site-packages/django/contrib/admin/static",
     ]
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'OPTIONS': { # type: ignore
-                'service': 'easyblog_service',
-                'passfile': '.easyblog_pgpass',
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "OPTIONS": {  # type: ignore
+                "service": "easyblog_service",
+                "passfile": ".easyblog_pgpass",
             },
         }
     }
 
-elif SYSTEM_ENV == 'GITHUB_WORKFLOW': # settings for github actions
+elif SYSTEM_ENV == "GITHUB_WORKFLOW":  # settings for github actions
     DEBUG = True
-    SECRET_KEY = 'TESTING_KEY' # hardcoded key for testing on github
+    SECRET_KEY = "TESTING_KEY"  # hardcoded key for testing on github
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'github_actions',
-            'USER': 'postgres',
-            'PASSWORD': 'postgres',
-            'HOST': '127.0.0.1',
-            'PORT': '5432',
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "github_actions",
+            "USER": "postgres",
+            "PASSWORD": "postgres",
+            "HOST": "127.0.0.1",
+            "PORT": "5432",
         }
     }
 
-else: # settings for local development
+else:  # settings for local development
     with open(BASE_DIR / "secret_key.txt") as file:
         SECRET_KEY = file.read().strip()
     DEBUG = True
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'OPTIONS': { # type: ignore
-                'service': 'easyblog_service',
-                'passfile': '.easyblog_pgpass',
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "OPTIONS": {  # type: ignore
+                "service": "easyblog_service",
+                "passfile": ".easyblog_pgpass",
             },
         }
     }
@@ -124,16 +124,16 @@ else: # settings for local development
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -141,9 +141,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = 'cs'
+LANGUAGE_CODE = "cs"
 
-TIME_ZONE = 'Europe/Prague'
+TIME_ZONE = "Europe/Prague"
 
 USE_I18N = True
 
@@ -155,9 +155,9 @@ DATE_FORMAT = "j. E, Y"
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

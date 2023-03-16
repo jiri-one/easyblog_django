@@ -5,17 +5,43 @@ from django.utils import timezone
 
 
 class Post(models.Model):
-    def get_next_id(): # type: ignore
+    def get_next_id():  # type: ignore
         return Post.objects.count() + 1
 
-    id = models.IntegerField(primary_key=True, validators=[MinValueValidator(1)], editable=False, default=get_next_id)
+    id = models.IntegerField(
+        primary_key=True,
+        validators=[MinValueValidator(1)],
+        editable=False,
+        default=get_next_id,
+    )
     title_cze = models.CharField("Post title CZE", unique=True, max_length=100)
-    title_eng = models.CharField("Post title ENG", unique=True, max_length=100, blank=True, null=True, default=None)
+    title_eng = models.CharField(
+        "Post title ENG",
+        unique=True,
+        max_length=100,
+        blank=True,
+        null=True,
+        default=None,
+    )
     content_cze = models.TextField("Post content CZE")
-    content_eng = models.TextField("Post content ENG", blank=True, null=True, default=None)
-    url_cze = models.SlugField("Post URL CZE", unique=True, max_length=100, editable=False)
-    url_eng = models.SlugField("Post URL ENG", unique=True, max_length=100, blank=True, null=True, editable=False, default=None)
-    pub_time = models.DateTimeField("Fist release time", editable=False, default=timezone.now)
+    content_eng = models.TextField(
+        "Post content ENG", blank=True, null=True, default=None
+    )
+    url_cze = models.SlugField(
+        "Post URL CZE", unique=True, max_length=100, editable=False
+    )
+    url_eng = models.SlugField(
+        "Post URL ENG",
+        unique=True,
+        max_length=100,
+        blank=True,
+        null=True,
+        editable=False,
+        default=None,
+    )
+    pub_time = models.DateTimeField(
+        "Fist release time", editable=False, default=timezone.now
+    )
     # for pub_time I can use auto_now_add , but it is not working for import, where is another time
     mod_time = models.DateTimeField("Last modification time", auto_now=True)
     author = models.ForeignKey("Author", on_delete=models.PROTECT)
@@ -48,19 +74,36 @@ class Comment(models.Model):
     content = models.TextField("Comment content")
     nick = models.CharField("Comment author - nick", max_length=20)
     pub_time = models.DateTimeField("Comment time", auto_now_add=True)
-    post = models.ForeignKey(Post, related_name='comments', on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, related_name="comments", on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.title} - {self.nick}"
 
 
 class Tag(models.Model):
-    name_cze = models.CharField("Tag name CZE", unique=True, max_length=20, )
-    name_eng = models.CharField("Tag name ENG", unique=True, max_length=20, blank=True, null=True, default=None)
+    name_cze = models.CharField(
+        "Tag name CZE",
+        unique=True,
+        max_length=20,
+    )
+    name_eng = models.CharField(
+        "Tag name ENG", unique=True, max_length=20, blank=True, null=True, default=None
+    )
     desc_cze = models.CharField("Tag description CZE", max_length=100)
-    desc_eng = models.CharField("Tag description ENG", max_length=100, blank=True, null=True)
-    url_cze = models.SlugField("Tag URL CZE", max_length=25, unique=True, editable=False)
-    url_eng = models.SlugField("Tag URL ENG", max_length=25, blank=True, null=True, editable=False, default=None)
+    desc_eng = models.CharField(
+        "Tag description ENG", max_length=100, blank=True, null=True
+    )
+    url_cze = models.SlugField(
+        "Tag URL CZE", max_length=25, unique=True, editable=False
+    )
+    url_eng = models.SlugField(
+        "Tag URL ENG",
+        max_length=25,
+        blank=True,
+        null=True,
+        editable=False,
+        default=None,
+    )
     order = models.IntegerField()
 
     def save(self, *args, **kwargs):

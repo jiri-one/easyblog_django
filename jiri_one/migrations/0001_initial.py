@@ -8,66 +8,229 @@ import jiri_one.models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='Author',
+            name="Author",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nick', models.CharField(max_length=20, verbose_name="Author's nick")),
-                ('first_name', models.CharField(max_length=20, verbose_name="Author's firstname")),
-                ('last_name', models.CharField(max_length=20, verbose_name="Author's lastname")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("nick", models.CharField(max_length=20, verbose_name="Author's nick")),
+                (
+                    "first_name",
+                    models.CharField(max_length=20, verbose_name="Author's firstname"),
+                ),
+                (
+                    "last_name",
+                    models.CharField(max_length=20, verbose_name="Author's lastname"),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Tag',
+            name="Tag",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name_cze', models.CharField(max_length=20, unique=True, verbose_name='Tag name CZE')),
-                ('name_eng', models.CharField(blank=True, default=None, max_length=20, null=True, unique=True, verbose_name='Tag name ENG')),
-                ('desc_cze', models.CharField(max_length=100, verbose_name='Tag description CZE')),
-                ('desc_eng', models.CharField(blank=True, max_length=100, null=True, verbose_name='Tag description ENG')),
-                ('url_cze', models.SlugField(editable=False, max_length=25, unique=True, verbose_name='Tag URL CZE')),
-                ('url_eng', models.SlugField(blank=True, default=None, editable=False, max_length=25, null=True, verbose_name='Tag URL ENG')),
-                ('order', models.IntegerField()),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name_cze",
+                    models.CharField(
+                        max_length=20, unique=True, verbose_name="Tag name CZE"
+                    ),
+                ),
+                (
+                    "name_eng",
+                    models.CharField(
+                        blank=True,
+                        default=None,
+                        max_length=20,
+                        null=True,
+                        unique=True,
+                        verbose_name="Tag name ENG",
+                    ),
+                ),
+                (
+                    "desc_cze",
+                    models.CharField(
+                        max_length=100, verbose_name="Tag description CZE"
+                    ),
+                ),
+                (
+                    "desc_eng",
+                    models.CharField(
+                        blank=True,
+                        max_length=100,
+                        null=True,
+                        verbose_name="Tag description ENG",
+                    ),
+                ),
+                (
+                    "url_cze",
+                    models.SlugField(
+                        editable=False,
+                        max_length=25,
+                        unique=True,
+                        verbose_name="Tag URL CZE",
+                    ),
+                ),
+                (
+                    "url_eng",
+                    models.SlugField(
+                        blank=True,
+                        default=None,
+                        editable=False,
+                        max_length=25,
+                        null=True,
+                        verbose_name="Tag URL ENG",
+                    ),
+                ),
+                ("order", models.IntegerField()),
             ],
             options={
-                'ordering': ['order'],
+                "ordering": ["order"],
             },
         ),
         migrations.CreateModel(
-            name='Post',
+            name="Post",
             fields=[
-                ('id', models.IntegerField(default=jiri_one.models.Post.get_next_id, editable=False, primary_key=True, serialize=False, validators=[django.core.validators.MinValueValidator(1)])),
-                ('title_cze', models.CharField(max_length=100, unique=True, verbose_name='Post title CZE')),
-                ('title_eng', models.CharField(blank=True, default=None, max_length=100, null=True, unique=True, verbose_name='Post title ENG')),
-                ('content_cze', models.TextField(verbose_name='Post content CZE')),
-                ('content_eng', models.TextField(blank=True, default=None, null=True, verbose_name='Post content ENG')),
-                ('url_cze', models.SlugField(editable=False, max_length=100, unique=True, verbose_name='Post URL CZE')),
-                ('url_eng', models.SlugField(blank=True, default=None, editable=False, max_length=100, null=True, unique=True, verbose_name='Post URL ENG')),
-                ('pub_time', models.DateTimeField(default=datetime.datetime.now, editable=False, verbose_name='Fist release time')),
-                ('mod_time', models.DateTimeField(auto_now=True, verbose_name='Last modification time')),
-                ('author', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='jiri_one.author')),
-                ('tags', models.ManyToManyField(to='jiri_one.tag')),
+                (
+                    "id",
+                    models.IntegerField(
+                        default=jiri_one.models.Post.get_next_id,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                        validators=[django.core.validators.MinValueValidator(1)],
+                    ),
+                ),
+                (
+                    "title_cze",
+                    models.CharField(
+                        max_length=100, unique=True, verbose_name="Post title CZE"
+                    ),
+                ),
+                (
+                    "title_eng",
+                    models.CharField(
+                        blank=True,
+                        default=None,
+                        max_length=100,
+                        null=True,
+                        unique=True,
+                        verbose_name="Post title ENG",
+                    ),
+                ),
+                ("content_cze", models.TextField(verbose_name="Post content CZE")),
+                (
+                    "content_eng",
+                    models.TextField(
+                        blank=True,
+                        default=None,
+                        null=True,
+                        verbose_name="Post content ENG",
+                    ),
+                ),
+                (
+                    "url_cze",
+                    models.SlugField(
+                        editable=False,
+                        max_length=100,
+                        unique=True,
+                        verbose_name="Post URL CZE",
+                    ),
+                ),
+                (
+                    "url_eng",
+                    models.SlugField(
+                        blank=True,
+                        default=None,
+                        editable=False,
+                        max_length=100,
+                        null=True,
+                        unique=True,
+                        verbose_name="Post URL ENG",
+                    ),
+                ),
+                (
+                    "pub_time",
+                    models.DateTimeField(
+                        default=datetime.datetime.now,
+                        editable=False,
+                        verbose_name="Fist release time",
+                    ),
+                ),
+                (
+                    "mod_time",
+                    models.DateTimeField(
+                        auto_now=True, verbose_name="Last modification time"
+                    ),
+                ),
+                (
+                    "author",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="jiri_one.author",
+                    ),
+                ),
+                ("tags", models.ManyToManyField(to="jiri_one.tag")),
             ],
             options={
-                'ordering': ['-pub_time'],
+                "ordering": ["-pub_time"],
             },
         ),
         migrations.CreateModel(
-            name='Comment',
+            name="Comment",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=100, verbose_name='Comment title')),
-                ('content', models.TextField(verbose_name='Comment content')),
-                ('nick', models.CharField(max_length=20, verbose_name='Comment author - nick')),
-                ('pub_time', models.DateTimeField(auto_now_add=True, verbose_name='Comment time')),
-                ('post', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='comments', to='jiri_one.post')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "title",
+                    models.CharField(max_length=100, verbose_name="Comment title"),
+                ),
+                ("content", models.TextField(verbose_name="Comment content")),
+                (
+                    "nick",
+                    models.CharField(
+                        max_length=20, verbose_name="Comment author - nick"
+                    ),
+                ),
+                (
+                    "pub_time",
+                    models.DateTimeField(
+                        auto_now_add=True, verbose_name="Comment time"
+                    ),
+                ),
+                (
+                    "post",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="comments",
+                        to="jiri_one.post",
+                    ),
+                ),
             ],
         ),
     ]

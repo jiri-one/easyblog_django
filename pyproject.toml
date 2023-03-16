@@ -47,6 +47,10 @@ optional = true
 [tool.poetry.group.production.dependencies]
 gunicorn = "^20.1.0"
 
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.1.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
