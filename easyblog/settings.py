@@ -118,6 +118,9 @@ else: # settings for local development
             },
         }
     }
+    # settings where to save attachments
+    MEDIA_ROOT = os.getenv("MEDIA_ROOT", BASE_DIR / "files")
+    MEDIA_URL = os.getenv("MEDIA_URL", "/files/")
 
 
 # Password validation
