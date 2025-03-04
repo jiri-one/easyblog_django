@@ -13,7 +13,7 @@ Django = "^5.0.0"
 beautifulsoup4 = "^4.11.1"
 httpx = "^0.23.0"
 psycopg2-binary = "^2.9.5"
-django-prose = "^2.0.0"
+django-markdownx = "^4.0.7"
 
 [tool.poetry.group.tests]
 optional = true
