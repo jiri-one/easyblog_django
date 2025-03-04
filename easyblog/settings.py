@@ -21,13 +21,14 @@ ALLOWED_HOSTS = ["127.0.0.1"]
 # Application definition
 
 INSTALLED_APPS = [
-    "jiri_one.apps.JiriOneConfig",
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
+    'jiri_one.apps.JiriOneConfig',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'prose',
 ]
 
 MIDDLEWARE = [
@@ -44,17 +45,17 @@ ROOT_URLCONF = "easyblog.urls"
 
 TEMPLATES = [
     {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "debug": True,
-            "context_processors": [
-                "django.template.context_processors.debug",
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-                "jiri_one.context_processors.tags_to_base",
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / "templates", ],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'debug': True,
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+                'jiri_one.context_processors.tags_to_base',
             ],
         },
     },
@@ -89,6 +90,9 @@ if SYSTEM_ENV == "PRODUCTION":  # settings for production server
             },
         }
     }
+    # where to save uploaded files
+    MEDIA_ROOT = os.getenv("MEDIA_ROOT", "/srv/http/virtual/jiri.one/files")
+    MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
 
 elif SYSTEM_ENV == "GITHUB_WORKFLOW":  # settings for github actions
     DEBUG = True
@@ -117,6 +121,9 @@ else:  # settings for local development
             },
         }
     }
+    # settings where to save attachments
+    MEDIA_ROOT = os.getenv("MEDIA_ROOT", BASE_DIR / "files")
+    MEDIA_URL = os.getenv("MEDIA_URL", "/files/")
 
 
 # Password validation
