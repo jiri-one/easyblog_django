@@ -5,15 +5,18 @@ import django.utils.timezone
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('jiri_one', '0001_initial'),
+        ("jiri_one", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='post',
-            name='pub_time',
-            field=models.DateTimeField(default=django.utils.timezone.now, editable=False, verbose_name='Fist release time'),
+            model_name="post",
+            name="pub_time",
+            field=models.DateTimeField(
+                default=django.utils.timezone.now,
+                editable=False,
+                verbose_name="Fist release time",
+            ),
         ),
     ]
