@@ -22,6 +22,6 @@ class PostModelTests(TestCase):
         assert isinstance(post, Post)
         response = self.client.get("/")
         self.assertQuerySetEqual(
-            response.context["page_obj"],
+            response.context["posts"],
             [post],
         )
