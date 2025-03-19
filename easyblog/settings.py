@@ -21,6 +21,7 @@ ALLOWED_HOSTS = ["127.0.0.1"]
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     'jiri_one.apps.JiriOneConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -55,13 +56,13 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'jiri_one.context_processors.tags_to_base',
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = "easyblog.wsgi.application"
+ASGI_APPLICATION = "easyblog.asgi.application"
 
 SYSTEM_ENV = os.environ.get("SYSTEM_ENV", None)
 if SYSTEM_ENV == "PRODUCTION":  # settings for production server
@@ -168,3 +169,6 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# nr of entries/posts on one page
+POSTS_ON_PAGE = 10
