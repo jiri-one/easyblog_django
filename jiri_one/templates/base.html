@@ -30,13 +30,7 @@
 <br>
 <b>Tagy:</b>
 <div class="topics">
-{% for tag in tags %}
-	{% if forloop.last %}
-		<a href="/tag/{{ tag.url_cze }}">{{ tag.name_cze }}</a>
-	{% else %}
-		<a style="border-bottom: 1px solid #3c67be;" href="/tag/{{ tag.url_cze }}">{{ tag.name_cze }}</a>
-	{% endif %}
-{% endfor %}
+{{ all_tags|safe }}
 </div><!-- .topics-->
 <br>
 <div class="search_form">
