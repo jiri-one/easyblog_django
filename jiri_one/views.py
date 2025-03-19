@@ -1,8 +1,6 @@
-from django.views.generic.detail import DetailView
-from django.views.generic.list import ListView
 from django.views import View
-from django.db.models import Q
-from django.shortcuts import redirect
+from django.db.models import Q, QuerySet, Count
+from django.shortcuts import redirect, render
 from django.http import (
     HttpResponseForbidden,
     HttpResponseServerError,
@@ -13,6 +11,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.encoding import force_bytes
 from django.conf import settings
+from django.core.paginator import Paginator
 from hashlib import sha256
 import hmac
 from ipaddress import ip_address, ip_network
@@ -20,19 +19,51 @@ import httpx
 import json
 from subprocess import Popen
 
+
 # internal imports
 from jiri_one.models import Post, Comment, Tag
 
+# helper variables
+TagDoesNotExist = Tag.DoesNotExist
 
-class PostDetailView(DetailView):
+
+async def get_post_html_tags(post_tags: QuerySet[Tag]):
+    """From tags of post create HTML"""
+    tags_links = []
+    async for tag in post_tags.values():
+        tags_links.append(f"""<a href="/tag/{tag["url_cze"]}">{tag["name_cze"]}</a>""")
+    return ", ".join(tags_links)
+
+async def get_all_html_tags():
+    nr_of_tags: int = await Tag.objects.acount()
+    html_tags: str = ""
+    index = 0
+    async for tag in Tag.objects.all():
+        if index == nr_of_tags - 1:
+            html_tags += f'<a href="/tag/{tag.url_cze}">{tag.name_cze}</a>'
+        else:
+            html_tags += f'<a style="border-bottom: 1px solid #3c67be;" href="/tag/{tag.url_cze}">{tag.name_cze}</a>'
+        index += 1
+    return html_tags
+
+class PostView(View):
     """Class for showing one post/entry."""
-
-    model = Post
-    slug_field = "url_cze"
-    slug_url_kwarg = "url_cze"
+    
     template_name = "post.html"
+        
+    async def get(self, request, url_cze, *args, **kwargs):
+        """GET method to show one Post."""
+        try:
+            post = await Post.objects.select_related("author").aget(url_cze=url_cze)
+        except Post.DoesNotExist:
+            return HttpResponseServerError("This post does not exist.", status=404)
+        all_tags_html = await get_all_html_tags()
+        post.html_tags = await get_post_html_tags(post.tags)
+        comments = [comment async for comment in Comment.objects.filter(post=post)]
+        return render(request, self.template_name, {"post": post, "comments": comments, "all_tags": all_tags_html})
+        
 
-    def post(self, request, *args, **kwargs):
+    async def post(self, request, url_cze, *args, **kwargs):
         """POST method for save comment."""
         # antispam comment part
         try:
@@ -40,55 +71,83 @@ class PostDetailView(DetailView):
             if five != 5:
                 raise ValueError
         except ValueError:
-            return HttpResponseForbidden("Musíte správně vyplnit pole Anitspam!")
+            return HttpResponseForbidden("Musíte správně vyplnit pole Antispam!")
+        
+        try:
+            post = await Post.objects.select_related("author").aget(url_cze=url_cze)
+        except Post.DoesNotExist:
+            return HttpResponseServerError("You are trying to send comment for non existent Post.", status=404)
         # comment save part
         header = request.POST.get("comment_header")
         nick = request.POST.get("comment_nick")
         content = request.POST.get("comment_content")
-        Comment.objects.create(
-            post=self.get_object(), title=header, nick=nick, content=content
+        await Comment.objects.acreate(
+            post=post, title=header, nick=nick, content=content
         )
         return redirect(request.path)
 
 
-class PostListView(ListView):
+class IndexView(View):
     """Main and the only one class to show index, tags and search results."""
 
-    model = Post
     template_name = "index.html"
-    paginate_by = 10
 
-    def get(self, request: HttpRequest, *args, **kwargs):
-        if "strana" in kwargs:
-            self.page_kwarg = "strana"
+    async def get(self, request: HttpRequest, *args, **kwargs):
+        queryset: QuerySet = Post.objects.select_related("author").annotate(Count("comments")).order_by("-id") # lazy object - will not access DB
+        all_tags_html = await get_all_html_tags()
+
+        # get tag
         if "tag" in kwargs:
-            self.tag = Tag.objects.get(url_cze=kwargs["tag"])
-            self.queryset = self.model.objects.filter(tags__url_cze=kwargs["tag"]).all()
+            try: # try to find Tag in czech url
+                tag: Tag = await Tag.objects.aget(url_cze=kwargs["tag"])
+            except TagDoesNotExist:
+                tag = None
+            if tag is None: # we didn't find Tag by czech, we will try english
+                try:
+                    tag: Tag = await Tag.objects.aget(url_eng=kwargs["tag"])
+                except TagDoesNotExist:
+                    tag = None
+            if tag is not None:
+                queryset = queryset.filter(tags=tag)
+                # TODO: now we are handle only one tag, in the future, we should handle combinations
+        
+        # get search
         if "search" in kwargs or "hledej" in kwargs:
-            if kwargs.get("search"):
-                self.searched_word = kwargs.get("search")
-            elif kwargs.get("hledej"):
-                self.searched_word = kwargs.get("hledej")
-            self.queryset = self.model.objects.filter(
-                Q(content_cze__icontains=self.searched_word)
-                | Q(title_cze__icontains=self.searched_word)
-            )
-        return super().get(request, *args, **kwargs)
+            search_cze: str | None = kwargs.get("hledej")
+            search_eng: str | None = kwargs.get("search")
+            default_search = None
+            search: str | None = search_cze or search_eng or default_search
+            if search is not None:
+                queryset = queryset.filter(
+                    Q(content_cze__icontains=search)
+                    | Q(title_cze__icontains=search)
+                )
+        # get the page number
+        page_cze: int | None = kwargs.get("strana")
+        page_eng: int | None = kwargs.get("page")
+        default_page: int = 1
+        current_page = page_cze or page_eng or default_page
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if hasattr(self, "tag"):
-            context["tag"] = self.tag
-        elif hasattr(self, "searched_word"):
-            context["searched_word"] = self.searched_word
-        return context
-
-    def post(self, request: HttpRequest, *args, **kwargs):
+        # get posts from current_page
+        post_id_list = [id async for id in queryset.values_list("id", flat=True)]
+        paginator = Paginator(post_id_list, settings.POSTS_ON_PAGE)
+        page_obj = paginator.get_page(current_page)
+        post_ids_on_current_page = page_obj.object_list
+        queryset = queryset.filter(id__in=post_ids_on_current_page)
+        posts = list[Post]()
+        async for post in queryset.all():
+            post.html_tags = await get_post_html_tags(post.tags)
+            posts.append(post)
+        
+        return render(request, self.template_name, {"page_obj": page_obj, "posts": posts, "all_tags": all_tags_html})
+        
+    
+    async def post(self, request: HttpRequest, *args, **kwargs):
         searched_word = request.POST.get("search")
         return redirect(f"hledej/{searched_word}")
 
 
-# I need to desable csrf tokens for this class, bacause it is POST from Github, not from protected form. In class based Views, the dispatch method is responsible for csrf.
+# I need to disable csrf tokens for this class, because it is POST from Github, not from protected form. In class based Views, the dispatch method is responsible for csrf.
 @method_decorator(csrf_exempt, name="dispatch")
 class DeployApiView(View):
     """Class for automatic deployment new code from GitHub repository."""
@@ -101,7 +160,7 @@ class DeployApiView(View):
         forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         req_ip_address = ip_address(forwarded_for)  # get real IP adress
         whitelist = httpx.get("https://api.github.com/meta").json()["hooks"]
-        # check if req_ip_adress is in ip network range
+        # check if req_ip_address is in ip network range
         for valid_ip in whitelist:
             if req_ip_address in ip_network(valid_ip):
                 break
