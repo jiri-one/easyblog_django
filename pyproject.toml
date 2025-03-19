@@ -14,6 +14,7 @@ beautifulsoup4 = "^4.11.1"
 httpx = "^0.23.0"
 psycopg2-binary = "^2.9.5"
 django-prose = "^2.0.0"
+daphne = "^4.1.2"
 
 [tool.poetry.group.tests]
 optional = true
