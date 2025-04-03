@@ -65,6 +65,10 @@ WSGI_APPLICATION = "easyblog.wsgi.application"
 ASGI_APPLICATION = "easyblog.asgi.application"
 
 SYSTEM_ENV = os.environ.get("SYSTEM_ENV", None)
+DB_USER = os.environ.get("DB_USER", None)
+DB_PASS = os.environ.get("DB_PASS", None)
+DB_NAME = os.environ.get("DB_NAME", None)
+
 if SYSTEM_ENV == "PRODUCTION":  # settings for production server
     with open(BASE_DIR / "secret_key.txt") as file:
         SECRET_KEY = file.read().strip()
@@ -116,10 +120,11 @@ else:  # settings for local development
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "OPTIONS": {  # type: ignore
-                "service": "easyblog_service",
-                "passfile": ".easyblog_pgpass",
-            },
+            "NAME": DB_NAME,
+            "USER": DB_USER,
+            "PASSWORD": DB_PASS,
+            "HOST": "127.0.0.1",
+            "PORT": "5432",
         }
     }
     # settings where to save attachments
