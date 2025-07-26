@@ -1,3 +1,29 @@
+Metadata-Version: 2.4
+Name: easyblog-django
+Version: 1.0.0
+Summary: Blog CMS for http://jiri.one site.
+Author: Jiří Němec
+Author-email: jiri1@duck.com
+License-Expression: GPL-3.0-or-later
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+Requires-Dist: psycopg2-binary>=2.9.5
+Requires-Dist: beautifulsoup4>=4.11.1
+Requires-Dist: django>=5.2
+Requires-Dist: django-prose
+Requires-Dist: httpx
+Requires-Dist: daphne
+Requires-Dist: djangorestframework
+Requires-Dist: django-filter
+Requires-Dist: markdown
+Provides-Extra: dev
+Requires-Dist: django-stubs; extra == "dev"
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-django; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Requires-Dist: pyflakes; extra == "dev"
+Dynamic: license-file
+
 # easyblog_django
 New main site for my blog with Django (Python) like a backend, PostgreSQL like a database and some pure JavaScript like a frontend. You can see results on [https://jiri.one](https://jiri.one).
 
