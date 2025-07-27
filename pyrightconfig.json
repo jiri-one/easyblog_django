@@ -1,0 +1,14 @@
+{
+  "pythonVersion": "3.13",
+  "include": ["src"],
+  "exclude": [
+    "src/easyblog/migrations",
+    "src/jiri_one/migrations",
+    "src/utils"
+  ],
+  "reportMissingImports": false,
+  "reportUnusedImport": true,
+  "reportUnusedVariable": true,
+  "reportUnnecessaryTypeIgnoreComment": true,
+  "reportGeneralTypeIssues": true
+}
