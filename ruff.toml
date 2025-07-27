@@ -1,0 +1,2 @@
+select = ["E", "F"]  # Keep other rules enabled
+ignore = ["E731", "E501"]  # Disable the lambda assignment rule and long lines
