@@ -35,11 +35,12 @@ dev = [
 
 # PyTest configuration
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "src.easyblog.settings"
+DJANGO_SETTINGS_MODULE = "easyblog.settings"
+pythonpath = "src"
 
 [tool.ruff]
 lint.select = ["E", "F"]  # Keep other rules enabled
-lint.ignore = ["E731", "E501"]    # Disable the lambda assignment rule and logn lines
+lint.ignore = ["E731", "E501"]    # Disable the lambda assignment rule and long lines
 
 # Pyright configuration
 [tool.pyright]
