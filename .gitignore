@@ -3,3 +3,4 @@ venv*
 secret_key.txt
 .env
 build/
+errors.log
