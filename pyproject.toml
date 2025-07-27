@@ -20,8 +20,7 @@ dependencies = [
   "django-prose",
   "httpx",
   "daphne",
-  "djangorestframework",
-  "django-filter",
+  "graphene-django>=3.2.3",
   "markdown"
 ]
 
@@ -30,65 +29,59 @@ dev = [
   "django-stubs",
   "pytest",
   "pytest-django",
-  "mypy",
-  "pyflakes",
+  "pyright",
+  "ruff",
 ]
-
 
 # PyTest configuration
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "easyblog.settings"
+DJANGO_SETTINGS_MODULE = "src.easyblog.settings"
 
-# MyPY configuration
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-plugins = ["mypy_django_plugin.main"]
+[tool.ruff]
+lint.select = ["E", "F"]  # Keep other rules enabled
+lint.ignore = ["E731", "E501"]    # Disable the lambda assignment rule and logn lines
 
-[tool.django-stubs]
-django_settings_module = "easyblog.settings"
-
-[[tool.mypy.overrides]]
-module = "rethinkdb.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "*.migrations.*"
-ignore_errors = true
+# Pyright configuration
+[tool.pyright]
+pythonVersion = "3.13"  # Match the Python version
+include = ["src"]       # Analyze the "src" directory
+exclude = [
+  "src/easyblog/migrations",  # Exclude migrations
+  "src/jiri_one/migrations",
+  "src/utils", # Exclude utils
+]
+reportMissingImports = false  # Equivalent to ignoring missing imports
+reportUnusedImport = true     # Warn about unused imports
+reportUnusedVariable = true   # Warn about unused variables
+reportUnnecessaryTypeIgnoreComment = true  # Warn about unnecessary "type: ignore"
+reportGeneralTypeIssues = true  # Enable general type-checking issues
 
 # Tox configuration
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py313, mypy, pyflakes
+envlist = py313, pyright, ruff
 skipsdist = True
 
 [gh-actions]
 python =
-    3.13: py313, mypy, pyflakes
+    3.13: py313, pyright, ruff
 
 [testenv]
 passenv = SYSTEM_ENV
-deps =
-    poetry
 commands =
-    poetry install --no-root --with tests
-    poetry run python -m pytest -v
+    pip install '.[dev]'
+    pytest -v
 
-[testenv:mypy]
+[testenv:pyright]
 basepython = python3.13
-deps =
-    poetry
 commands =
-    poetry install --no-root --with mypy
-    poetry run python -m mypy easyblog jiri_one
+    pip install '.[dev]'
+    pyright
 
-[testenv:pyflakes]
+[testenv:ruff]
 basepython = python3.13
-deps =
-    poetry
 commands =
-    poetry install --no-root --with pyflakes
-    poetry run python -m pyflakes easyblog jiri_one
+    pip install '.[dev]'
+    ruff check src
 """
