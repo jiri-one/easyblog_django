@@ -46,6 +46,6 @@ def test_graphql_query(create_random_posts):
     }
     """
     response = client.execute(query)
-    assert "data" in response
+    assert response is not None and "data" in response
     graphql_posts = sorted(response["data"]["allPosts"], key=lambda k: k["id"])
     assert graphql_posts == sorted(posts, key=lambda k: k["id"])
