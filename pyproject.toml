@@ -33,56 +33,30 @@ dev = [
   "ruff",
 ]
 
-# PyTest configuration
-[tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "easyblog.settings"
-pythonpath = "src"
-
-[tool.ruff]
-lint.select = ["E", "F"]  # Keep other rules enabled
-lint.ignore = ["E731", "E501"]    # Disable the lambda assignment rule and long lines
-
-# Pyright configuration
-[tool.pyright]
-pythonVersion = "3.13"  # Match the Python version
-include = ["src"]       # Analyze the "src" directory
-exclude = [
-  "src/easyblog/migrations",  # Exclude migrations
-  "src/jiri_one/migrations",
-  "src/utils", # Exclude utils
-]
-reportMissingImports = false  # Equivalent to ignoring missing imports
-reportUnusedImport = true     # Warn about unused imports
-reportUnusedVariable = true   # Warn about unused variables
-reportUnnecessaryTypeIgnoreComment = true  # Warn about unnecessary "type: ignore"
-reportGeneralTypeIssues = true  # Enable general type-checking issues
-
-# Tox configuration
 [tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py313, pyright, ruff
-skipsdist = True
+envlist = ["py313", "pyright", "ruff"]
+skipsdist = true
 
-[gh-actions]
-python =
-    3.13: py313, pyright, ruff
+[tool.tox.gh-actions]
+python = { "3.13" = ["py313", "pyright", "ruff"] }
 
-[testenv]
-passenv = SYSTEM_ENV
-commands =
-    pip install '.[dev]'
-    pytest -v
+[tool.tox.testenv]
+passenv = ["SYSTEM_ENV"]
+commands = [
+  "pip install '.[dev]'",
+  "pytest -v"
+]
 
-[testenv:pyright]
-basepython = python3.13
-commands =
-    pip install '.[dev]'
-    pyright
+[tool.tox.testenv.pyright]
+basepython = "python3.13"
+commands = [
+  "pip install '.[dev]'",
+  "pyright"
+]
 
-[testenv:ruff]
-basepython = python3.13
-commands =
-    pip install '.[dev]'
-    ruff check src
-"""
+[tool.tox.testenv.ruff]
+basepython = "python3.13"
+commands = [
+  "pip install '.[dev]'",
+  "ruff check src"
+]
