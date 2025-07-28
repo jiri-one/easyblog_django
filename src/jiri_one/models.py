@@ -6,6 +6,10 @@ from prose.fields import RichTextField
 
 
 class Post(models.Model):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.html_tags = ""
+
     def get_next_id():  # type: ignore
         return Post.objects.count() + 1
 
