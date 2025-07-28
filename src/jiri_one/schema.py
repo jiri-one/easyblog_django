@@ -20,7 +20,7 @@ class PostType(DjangoObjectType):
 class TagType(DjangoObjectType):
     class Meta:
         model = Tag
-        fields = ("id", "name_cze", "desc_cze", "url_cze")
+        fields = ("name_cze", "desc_cze", "url_cze", "order")
 
 class Query(graphene.ObjectType):
     post_by_id = graphene.Field(PostType, id=graphene.Int(required=True))

@@ -5,7 +5,7 @@ import string
 
 # internal imports
 from jiri_one.schema import schema
-from jiri_one.models import Post
+from jiri_one.models import Post, Tag
 from test_views import create_post
 
 
@@ -22,6 +22,23 @@ def create_random_posts():
         post = create_post(random_title, random_content)
         posts.append(post)
     yield posts
+
+
+@pytest.fixture
+def create_random_tags():
+    tags = list[Tag]()
+    for order_int in range(1,11):
+        random_name = "".join(
+            random.choices(string.ascii_letters + string.digits, k=10)
+        )
+        random_desc = "".join(
+            random.choices(string.ascii_letters + string.digits, k=100)
+        )
+        tag = Tag.objects.create(
+        name_cze=random_name, desc_cze=random_desc, order=order_int
+    )
+        tags.append(tag)
+    yield tags
 
 
 @pytest.mark.django_db
@@ -83,8 +100,34 @@ def test_random_post_by_id_graphql_query(create_random_posts):
         }
         """.replace("XXX", str(post.id))
         response = client.execute(query)
-        print(response)
         assert response is not None and "data" in response
         graphql_post = response["data"]["postById"]
         assert graphql_post["titleCze"] == post.title_cze
         assert graphql_post["contentCze"] == post.content_cze
+
+
+@pytest.mark.django_db
+def test_all_tags_graphql_query(create_random_tags):
+    tags = list[dict[str, str]]()
+    for tag in create_random_tags:
+        tags.append(
+            dict(
+                nameCze=tag.name_cze,
+                descCze=tag.desc_cze,
+                order=tag.order,
+            )
+        )
+    client = Client(schema)
+    query = """
+    query {
+        allTags {
+            nameCze
+            descCze
+            order
+        }
+    }
+    """
+    response = client.execute(query)
+    assert response is not None and "data" in response
+    graphql_tags = sorted(response["data"]["allTags"], key=lambda k: k["order"])
+    assert graphql_tags == sorted(tags, key=lambda k: k["order"])
