@@ -25,7 +25,7 @@ def create_random_posts():
 
 
 @pytest.mark.django_db
-def test_graphql_query(create_random_posts):
+def test_all_posts_graphql_query(create_random_posts):
     posts = list[dict[str, str]]()
     for post in create_random_posts:
         posts.append(
@@ -49,3 +49,22 @@ def test_graphql_query(create_random_posts):
     assert response is not None and "data" in response
     graphql_posts = sorted(response["data"]["allPosts"], key=lambda k: k["id"])
     assert graphql_posts == sorted(posts, key=lambda k: k["id"])
+
+
+@pytest.mark.django_db
+def test_random_post_graphql_query(create_random_posts):
+    client = Client(schema)
+    for post in create_random_posts:
+        query = """
+        query {
+            postByUrl(url: "XXX") {
+                titleCze
+                contentCze
+            }
+        }
+        """.replace("XXX", post.url_cze)
+        response = client.execute(query)
+        assert response is not None and "data" in response
+        graphql_post = response["data"]["postByUrl"]
+        assert graphql_post["titleCze"] == post.title_cze
+        assert graphql_post["contentCze"] == post.content_cze
