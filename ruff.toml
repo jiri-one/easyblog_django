@@ -1,2 +1,5 @@
 select = ["E", "F"]  # Keep other rules enabled
-ignore = ["E731", "E501", "F841"]  # Disable the lambda assignment rule and long lines
+ignore = ["E731", "E501", "F841"]  
+# E731 = Disable the lambda assignment rule
+# E50 = Disable long lines rule
+# F841 = Disable unused variable rule (let it to Pyright)
