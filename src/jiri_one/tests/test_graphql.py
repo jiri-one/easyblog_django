@@ -10,21 +10,6 @@ from test_views import create_post
 
 
 @pytest.fixture
-def create_random_posts():
-    posts = list[Post]()
-    for _ in range(10):
-        random_title = "".join(
-            random.choices(string.ascii_letters + string.digits, k=10)
-        )
-        random_content = "".join(
-            random.choices(string.ascii_letters + string.digits, k=100)
-        )
-        post = create_post(random_title, random_content)
-        posts.append(post)
-    yield posts
-
-
-@pytest.fixture
 def create_random_tags():
     tags = list[Tag]()
     for order_int in range(1,11):
@@ -42,15 +27,23 @@ def create_random_tags():
 
 
 @pytest.fixture
-def create_random_posts_with_tags(create_random_posts, create_random_tags):
+def create_random_posts(create_random_tags):
     tags: list[Tag] = create_random_tags
-    posts:list[Post] = create_random_posts
-    for post in posts:
-        post: Post
+    posts = list[Post]()
+    for _ in range(10):
+        random_title = "".join(
+            random.choices(string.ascii_letters + string.digits, k=10)
+        )
+        random_content = "".join(
+            random.choices(string.ascii_letters + string.digits, k=100)
+        )
+        post = create_post(random_title, random_content)
         post_tags = random.choices(tags, k=3)
         post.tags.add(*post_tags)
         post.save()
-    return posts, tags
+        posts.append(post)
+    yield posts
+
 
 @pytest.mark.django_db
 def test_all_posts_graphql_query(create_random_posts):
@@ -118,11 +111,9 @@ def test_random_post_by_id_graphql_query(create_random_posts):
 
 
 @pytest.mark.django_db
-def test_random_post_by_tags_graphql_query(create_random_posts_with_tags):
+def test_random_post_by_tags_graphql_query(create_random_tags):
     client = Client(schema)
-    posts, tags = create_random_posts_with_tags
-    posts: list[Post]
-    tags: list[Tag]
+    tags: list[Tag] = create_random_tags
     for _ in range(3):
         tags_to_filter = random.choices(tags, k=2)
         filtered_posts = Post.objects.filter(tags__in=tags_to_filter)
