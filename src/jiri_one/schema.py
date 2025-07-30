@@ -67,7 +67,7 @@ class Query(graphene.ObjectType):
         
         # Filter posts by the fetched tags
         offset = get_offset(page)
-        return Post.objects.filter(tag__in=tags).distinct()[offset:offset+POSTS_ON_PAGE]
+        return Post.objects.filter(tags__in=tags).distinct()[offset:offset+POSTS_ON_PAGE]
 
     def resolve_all_tags(root, info):
         return Tag.objects.all()
