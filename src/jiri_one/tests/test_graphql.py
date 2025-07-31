@@ -168,6 +168,7 @@ def test_all_tags_graphql_query(create_random_tags):
     graphql_tags = sorted(response["data"]["allTags"], key=lambda k: k["order"])
     assert graphql_tags == sorted(tags, key=lambda k: k["order"])
 
+
 @pytest.mark.django_db
 def test_add_comment_with_graphql(create_random_posts):
     client = Client(schema)
