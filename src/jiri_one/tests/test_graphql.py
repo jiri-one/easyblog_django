@@ -2,10 +2,11 @@ from graphene.test import Client
 import pytest
 import random
 import string
+import json
 
 # internal imports
 from jiri_one.schema import schema
-from jiri_one.models import Post, Tag
+from jiri_one.models import Post, Tag, Comment
 from test_views import create_post
 
 
@@ -166,3 +167,56 @@ def test_all_tags_graphql_query(create_random_tags):
     assert response is not None and "data" in response
     graphql_tags = sorted(response["data"]["allTags"], key=lambda k: k["order"])
     assert graphql_tags == sorted(tags, key=lambda k: k["order"])
+
+@pytest.mark.django_db
+def test_add_comment_with_graphql(create_random_posts):
+    client = Client(schema)
+    mutation = """
+    mutation CreateComment {
+        createComment(
+            postId: 1,
+            title: "Great article!",
+            content: "This is a very informative post. Thanks for sharing your insights on this topic.",
+            nick: "JohnDoe"
+        ) {
+            success
+            message
+            comment {
+            id
+            title
+            content
+            nick
+            pubTime
+            post {
+                id
+                titleCze
+            }
+            }
+        }
+    }
+    """
+    response = client.execute(mutation)
+    expected_response = json.loads("""
+    {
+        "data": {
+            "createComment": {
+            "success": true,
+            "message": "Comment created successfully.",
+            "comment": {
+                "id": "1",
+                "title": "Great article!",
+                "content": "This is a very informative post. Thanks for sharing your insights on this topic.",
+                "nick": "JohnDoe",
+                "pubTime": "YYY",
+                "post": {
+                "id": 1,
+                "titleCze": "XXX"
+                }
+            }
+            }
+        }
+    }
+    """.replace("XXX", Post.objects.get(id=1).title_cze).replace("YYY", Comment.objects.get(id=1).pub_time.isoformat()))
+
+    assert response is not None and "data" in response
+    assert response == expected_response
