@@ -1,19 +1,22 @@
-from graphene.test import Client
-import pytest
+import json
+import logging
 import random
 import string
-import json
+
+import pytest
+from graphene.test import Client
 
 # internal imports
-from jiri_one.schema import schema
-from jiri_one.models import Post, Tag, Comment
 from test_views import create_post
+
+from jiri_one.models import Comment, Post, Tag
+from jiri_one.schema import schema
 
 
 @pytest.fixture
 def create_random_tags():
     tags = list[Tag]()
-    for order_int in range(1,11):
+    for order_int in range(1, 11):
         random_name = "".join(
             random.choices(string.ascii_letters + string.digits, k=10)
         )
@@ -21,8 +24,8 @@ def create_random_tags():
             random.choices(string.ascii_letters + string.digits, k=100)
         )
         tag = Tag.objects.create(
-        name_cze=random_name, desc_cze=random_desc, order=order_int
-    )
+            name_cze=random_name, desc_cze=random_desc, order=order_int
+        )
         tags.append(tag)
     yield tags
 
@@ -135,10 +138,14 @@ def test_random_post_by_tags_graphql_query(create_random_tags):
                 id
             }
         }
-        """.replace("TAG1", tags_to_filter[0].url_cze).replace("TAG2", tags_to_filter[1].url_cze)
+        """.replace("TAG1", tags_to_filter[0].url_cze).replace(
+            "TAG2", tags_to_filter[1].url_cze
+        )
         response = client.execute(query)
         assert response is not None and "data" in response
-        graphql_posts = sorted(response["data"]["postsByTagsUrl"], key=lambda post: post["id"])
+        graphql_posts = sorted(
+            response["data"]["postsByTagsUrl"], key=lambda post: post["id"]
+        )
         assert graphql_posts == sorted(post_data_list, key=lambda post: post["id"])
 
 
@@ -197,7 +204,8 @@ def test_add_comment_with_graphql(create_random_posts):
     }
     """
     response = client.execute(mutation)
-    expected_response = json.loads("""
+    expected_response = json.loads(
+        """
     {
         "data": {
             "createComment": {
@@ -217,7 +225,48 @@ def test_add_comment_with_graphql(create_random_posts):
             }
         }
     }
-    """.replace("XXX", Post.objects.get(id=1).title_cze).replace("YYY", Comment.objects.get(id=1).pub_time.isoformat()))
+    """.replace("XXX", Post.objects.get(id=1).title_cze).replace(
+            "YYY", Comment.objects.get(id=1).pub_time.isoformat()
+        )
+    )
 
     assert response is not None and "data" in response
     assert response == expected_response
+
+
+@pytest.mark.django_db
+def test_add_comment_with_graphql_error(create_random_posts, caplog):
+    bad_id: int = 9999
+    client = Client(schema)
+    mutation = """
+    mutation CreateComment {
+        createComment(
+            postId: AAA,
+            title: "XXX",
+            content: "YYY",
+            nick: "ZZZ"
+        ) {
+            success
+            message
+            comment {
+            id
+            title
+            content
+            nick
+            pubTime
+            post {
+                id
+                titleCze
+            }
+            }
+        }
+    }
+    """
+    mutation_without_post_id = mutation.replace("AAA", f"{bad_id}")
+    with caplog.at_level(logging.ERROR, logger="jiri_one"):
+        response = client.execute(mutation_without_post_id)
+        assert response is not None and "errors" in response
+        assert (
+            f"Failed to create comment for Post ID {bad_id}, post doesn't exists."
+            in caplog.text
+        )
