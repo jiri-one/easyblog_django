@@ -1,14 +1,21 @@
 {
   "pythonVersion": "3.13",
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "exclude": [
     "src/easyblog/migrations",
     "src/jiri_one/migrations",
     "src/utils"
   ],
-  "reportMissingImports": false,
-  "reportUnusedImport": true,
-  "reportUnusedVariable": true,
+  // Focus on type checking, let Ruff handle style
+  "reportMissingImports": true,
+  "reportUnusedImport": false, // Let Ruff handle this
+  "reportUnusedVariable": true, // Keep this for type safety
   "reportUnnecessaryTypeIgnoreComment": true,
-  "reportGeneralTypeIssues": true
+  "reportGeneralTypeIssues": true,
+  "reportOptionalMemberAccess": true,
+  "reportOptionalSubscript": true,
+  "reportPrivateImportUsage": true,
+  "reportSelfClsParameterName": false
 }
