@@ -1,5 +1,33 @@
-select = ["E", "F"]  # Keep other rules enabled
-ignore = ["E731", "E501", "F841"]  
-# E731 = Disable the lambda assignment rule
-# E50 = Disable long lines rule
-# F841 = Disable unused variable rule (let it to Pyright)
+[lint]
+# Enable comprehensive rule sets
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings  
+    "F",   # pyflakes
+    "I",   # isort (import sorting)
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "PIE", # flake8-pie
+    "SIM", # flake8-simplify
+]
+
+ignore = [
+    "E731",  # lambda assignment (keep your preference)
+    "E501",  # line too long (let editor handle this)
+    "C408",  # dict() calls with keyword arguments
+    "N805",  # disable first parameter to be self
+]
+
+# Ruff handles formatting and imports
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[lint.isort]
+known-first-party = ["jiri_one", "easyblog"]
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["dict", "frozenset", "set"]
