@@ -60,3 +60,8 @@ commands = [
   "pip install '.[dev]'",
   "ruff check src"
 ]
+
+[tool.pylance]
+typeCheckingMode = "strict"
+reportMissingImports = true
+reportMissingTypeStubs = false
