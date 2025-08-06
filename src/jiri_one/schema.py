@@ -105,17 +105,17 @@ class CreateComment(graphene.Mutation):
     def mutate(self, info, post_id, title, content, nick):  # Validate inputs
         if not title.strip():
             raise GraphQLError("Title cannot be empty.")
-        if len(title.strip()) > 200:  # Adjust based on your model
+        if len(title.strip()) > 200:
             raise GraphQLError("Title is too long.")
 
         if not content.strip():
             raise GraphQLError("Content cannot be empty.")
-        if len(content.strip()) > 2000:  # Adjust based on your model
+        if len(content.strip()) > 2000:
             raise GraphQLError("Content is too long.")
 
         if not nick.strip():
             raise GraphQLError("Nick cannot be empty.")
-        if len(nick.strip()) > 50:  # Adjust based on your model
+        if len(nick.strip()) > 50:
             raise GraphQLError("Nick is too long.")
 
         try:
