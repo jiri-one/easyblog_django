@@ -234,17 +234,52 @@ def test_add_comment_with_graphql(create_random_posts):
     assert response == expected_response
 
 
+test_data = [
+    (
+        "POST_ID",
+        "9999",
+        "Failed to create comment. Please try again.",
+        "Failed to create comment for Post ID 9999, post doesn't exists.",
+    ),
+    ("TITLE", "", "Title cannot be empty.", None),
+    ("TITLE", 201 * "X", "Title is too long.", None),
+    ("CONTENT", "", "Content cannot be empty.", None),
+    ("CONTENT", 2001 * "X", "Content is too long.", None),
+    ("NICK", "", "Nick cannot be empty.", None),
+    ("NICK", 51 * "X", "Nick is too long.", None),
+]
+
+
 @pytest.mark.django_db
-def test_add_comment_with_graphql_error(create_random_posts, caplog):
-    bad_id: int = 9999
+@pytest.mark.parametrize(
+    "replace_what, replace_with, expected_error_msg, expected_log",
+    test_data,
+    ids=[
+        "wrong_post_id",
+        "empty_title",
+        "long_title",
+        "empty_content",
+        "long_content",
+        "empty_nick",
+        "long_nick",
+    ],
+)
+def test_add_comment_with_graphql_error(
+    create_random_posts,
+    replace_what,
+    replace_with,
+    expected_error_msg,
+    expected_log,
+    caplog,
+):
     client = Client(schema)
     mutation = """
     mutation CreateComment {
         createComment(
-            postId: AAA,
-            title: "XXX",
-            content: "YYY",
-            nick: "ZZZ"
+            postId: POST_ID,
+            title: "TITLE",
+            content: "CONTENT",
+            nick: "NICK"
         ) {
             success
             message
@@ -262,11 +297,12 @@ def test_add_comment_with_graphql_error(create_random_posts, caplog):
         }
     }
     """
-    mutation_without_post_id = mutation.replace("AAA", f"{bad_id}")
-    with caplog.at_level(logging.ERROR, logger="jiri_one"):
-        response = client.execute(mutation_without_post_id)
-        assert response is not None and "errors" in response
-        assert (
-            f"Failed to create comment for Post ID {bad_id}, post doesn't exists."
-            in caplog.text
-        )
+    tested_mutation = mutation.replace(replace_what, replace_with)
+
+    response = client.execute(tested_mutation)
+    if expected_log is not None:
+        caplog.set_level(logging.ERROR, logger="jiri_one")
+        assert expected_log in caplog.text
+
+    assert response is not None and "errors" in response
+    print(response["errors"])
