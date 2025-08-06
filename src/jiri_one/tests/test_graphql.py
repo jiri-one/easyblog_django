@@ -177,7 +177,7 @@ def test_all_tags_graphql_query(create_random_tags):
 
 
 @pytest.mark.django_db
-def test_add_comment_with_graphql(create_random_posts):
+def test_add_comment_with_graphql(create_random_posts, caplog):
     client = Client(schema)
     mutation = """
     mutation CreateComment {
@@ -203,7 +203,10 @@ def test_add_comment_with_graphql(create_random_posts):
         }
     }
     """
-    response = client.execute(mutation)
+    with caplog.at_level(logging.INFO, logger="jiri_one"):
+        response = client.execute(mutation)
+        assert "Comment created successfully for Post ID 1 by JohnDoe." in caplog.text
+
     expected_response = json.loads(
         """
     {
