@@ -236,7 +236,7 @@ def test_add_comment_with_graphql(create_random_posts):
 
 test_data = [
     (
-        "POST_ID",
+        "1",  # correct post_id
         "9999",
         "Failed to create comment. Please try again.",
         "Failed to create comment for Post ID 9999, post doesn't exists.",
@@ -276,7 +276,7 @@ def test_add_comment_with_graphql_error(
     mutation = """
     mutation CreateComment {
         createComment(
-            postId: POST_ID,
+            postId: 1,
             title: "TITLE",
             content: "CONTENT",
             nick: "NICK"
@@ -305,4 +305,4 @@ def test_add_comment_with_graphql_error(
         assert expected_log in caplog.text
 
     assert response is not None and "errors" in response
-    print(response["errors"])
+    assert response["errors"][0]["message"] == expected_error_msg
