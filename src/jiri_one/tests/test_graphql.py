@@ -178,11 +178,13 @@ def test_all_tags_graphql_query(create_random_tags):
 
 @pytest.mark.django_db
 def test_add_comment_with_graphql(create_random_posts, caplog):
+    # Use the first post from the fixture
+    first_post = create_random_posts[0]
     client = Client(schema)
     mutation = """
     mutation CreateComment {
         createComment(
-            postId: 1,
+            postId: POST_ID,
             title: "Great article!",
             content: "This is a very informative post. Thanks for sharing your insights on this topic.",
             nick: "JohnDoe"
@@ -202,10 +204,13 @@ def test_add_comment_with_graphql(create_random_posts, caplog):
             }
         }
     }
-    """
+    """.replace("POST_ID", str(first_post.id))
     with caplog.at_level(logging.INFO, logger="jiri_one"):
         response = client.execute(mutation)
-        assert "Comment created successfully for Post ID 1 by JohnDoe." in caplog.text
+        assert (
+            f"Comment created successfully for Post ID {first_post.id} by JohnDoe."
+            in caplog.text
+        )
 
     expected_response = json.loads(
         """
@@ -219,17 +224,17 @@ def test_add_comment_with_graphql(create_random_posts, caplog):
                 "title": "Great article!",
                 "content": "This is a very informative post. Thanks for sharing your insights on this topic.",
                 "nick": "JohnDoe",
-                "pubTime": "YYY",
+                "pubTime": "PUB_TIME",
                 "post": {
                 "id": 1,
-                "titleCze": "XXX"
+                "titleCze": "TITLE_CZE"
                 }
             }
             }
         }
     }
-    """.replace("XXX", Post.objects.get(id=1).title_cze).replace(
-            "YYY", Comment.objects.get(id=1).pub_time.isoformat()
+    """.replace("TITLE_CZE", first_post.title_cze).replace(
+            "PUB_TIME", Comment.objects.filter(post=first_post)[0].pub_time.isoformat()
         )
     )
 
