@@ -302,10 +302,12 @@ def test_add_comment_with_graphql_error(
     """
     tested_mutation = mutation.replace(replace_what, replace_with)
 
-    response = client.execute(tested_mutation)
     if expected_log is not None:
-        caplog.set_level(logging.ERROR, logger="jiri_one")
-        assert expected_log in caplog.text
+        with caplog.at_level(logging.ERROR, logger="jiri_one"):
+            response = client.execute(tested_mutation)
+            assert expected_log in caplog.text
+    else:
+        response = client.execute(tested_mutation)
 
     assert response is not None and "errors" in response
     assert response["errors"][0]["message"] == expected_error_msg
