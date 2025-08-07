@@ -89,6 +89,8 @@ class Query(graphene.ObjectType):
     def resolve_all_tags(root, info):
         return Tag.objects.all()
 
+    # TODO: implement search in posts!
+
 
 class CreateComment(graphene.Mutation):
     class Arguments:
