@@ -46,13 +46,14 @@ def create_random_posts(create_random_tags):
         post.tags.add(*post_tags)
         post.save()
         posts.append(post)
-    yield posts
+    return posts, tags
 
 
 @pytest.mark.django_db
 def test_all_posts_graphql_query(create_random_posts):
+    random_posts, _ = create_random_posts
     posts = list[dict[str, str]]()
-    for post in create_random_posts:
+    for post in random_posts:
         posts.append(
             dict(
                 id=post.id,
@@ -79,15 +80,16 @@ def test_all_posts_graphql_query(create_random_posts):
 @pytest.mark.django_db
 def test_random_post_by_url_graphql_query(create_random_posts):
     client = Client(schema)
-    for post in create_random_posts:
+    posts, _ = create_random_posts
+    for post in posts:
         query = """
         query {
-            postByUrl(url: "XXX") {
+            postByUrl(url: "POST_URL") {
                 titleCze
                 contentCze
             }
         }
-        """.replace("XXX", post.url_cze)
+        """.replace("POST_URL", post.url_cze)
         response = client.execute(query)
         assert response is not None and "data" in response
         graphql_post = response["data"]["postByUrl"]
@@ -98,7 +100,8 @@ def test_random_post_by_url_graphql_query(create_random_posts):
 @pytest.mark.django_db
 def test_random_post_by_id_graphql_query(create_random_posts):
     client = Client(schema)
-    for post in create_random_posts:
+    posts, _ = create_random_posts
+    for post in posts:
         query = """
         query {
             postById(id: XXX) {
@@ -115,12 +118,12 @@ def test_random_post_by_id_graphql_query(create_random_posts):
 
 
 @pytest.mark.django_db
-def test_random_post_by_tags_graphql_query(create_random_tags):
+def test_random_post_by_tags_graphql_query(create_random_posts):
     client = Client(schema)
-    tags: list[Tag] = create_random_tags
+    _, tags = create_random_posts
     for _ in range(3):
         tags_to_filter = random.choices(tags, k=2)
-        filtered_posts = Post.objects.filter(tags__in=tags_to_filter)
+        filtered_posts = Post.objects.filter(tags__in=tags_to_filter).distinct()
         post_data_list = list[dict[str, str]]()
         for post in filtered_posts:
             post_data_list.append(
@@ -179,7 +182,8 @@ def test_all_tags_graphql_query(create_random_tags):
 @pytest.mark.django_db
 def test_add_comment_with_graphql(create_random_posts, caplog):
     # Use the first post from the fixture
-    first_post = create_random_posts[0]
+    posts, _ = create_random_posts
+    first_post = posts[0]
     client = Client(schema)
     mutation = """
     mutation CreateComment {
