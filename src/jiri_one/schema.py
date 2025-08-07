@@ -18,7 +18,7 @@ get_offset = lambda page: (page - 1) * POSTS_ON_PAGE
 class PostType(DjangoObjectType):
     class Meta:
         model = Post
-        fields = ("id", "title_cze", "content_cze", "url_cze")
+        fields = ("id", "title_cze", "content_cze", "url_cze", "tags")
 
 
 class TagType(DjangoObjectType):
