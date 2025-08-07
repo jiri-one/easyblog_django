@@ -2,6 +2,7 @@ import json
 import logging
 import random
 import string
+from typing import Any
 
 import pytest
 from graphene.test import Client
@@ -87,6 +88,9 @@ def test_random_post_by_url_graphql_query(create_random_posts):
             postByUrl(url: "POST_URL") {
                 titleCze
                 contentCze
+                tags {
+                    nameCze
+                }
             }
         }
         """.replace("POST_URL", post.url_cze)
@@ -124,13 +128,14 @@ def test_random_post_by_tags_graphql_query(create_random_posts):
     for _ in range(3):
         tags_to_filter = random.choices(tags, k=2)
         filtered_posts = Post.objects.filter(tags__in=tags_to_filter).distinct()
-        post_data_list = list[dict[str, str]]()
+        post_data_list = list[dict[str, Any]]()
         for post in filtered_posts:
             post_data_list.append(
                 dict(
                     id=post.id,
                     titleCze=post.title_cze,
                     contentCze=post.content_cze,
+                    tags=[{"urlCze": tag.url_cze} for tag in post.tags.all()],
                 )
             )
         query = """
@@ -139,6 +144,9 @@ def test_random_post_by_tags_graphql_query(create_random_posts):
                 titleCze
                 contentCze
                 id
+                tags {
+                    urlCze
+                }
             }
         }
         """.replace("TAG1", tags_to_filter[0].url_cze).replace(
