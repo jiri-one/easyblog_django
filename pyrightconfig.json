@@ -6,7 +6,8 @@
   "exclude": [
     "src/easyblog/migrations",
     "src/jiri_one/migrations",
-    "src/utils"
+    "src/utils",
+    "src/jiri_one/management"
   ],
   // Focus on type checking, let Ruff handle style
   "reportMissingImports": true,
