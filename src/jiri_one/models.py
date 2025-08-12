@@ -1,7 +1,7 @@
-from django.db import models
-from django.utils.text import slugify
 from django.core.validators import MinValueValidator
+from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 from prose.fields import RichTextField
 
 
@@ -10,7 +10,8 @@ class Post(models.Model):
         super().__init__(*args, **kwargs)
         self.html_tags = ""
 
-    def get_next_id():  # type: ignore
+    @staticmethod
+    def get_next_id():
         return Post.objects.count() + 1
 
     id = models.IntegerField(
@@ -20,12 +21,31 @@ class Post(models.Model):
         default=get_next_id,
     )
     title_cze = models.CharField("Post title CZE", unique=True, max_length=100)
-    title_eng = models.CharField("Post title ENG", unique=True, max_length=100, blank=True, null=True, default=None)
+    title_eng = models.CharField(
+        "Post title ENG",
+        unique=True,
+        max_length=100,
+        blank=True,
+        null=True,
+        default=None,
+    )
     content_cze = RichTextField("Post content CZE")
     content_eng = RichTextField("Post content ENG", blank=True, null=True, default=None)
-    url_cze = models.SlugField("Post URL CZE", unique=True, max_length=100, editable=False)
-    url_eng = models.SlugField("Post URL ENG", unique=True, max_length=100, blank=True, null=True, editable=False, default=None)
-    pub_time = models.DateTimeField("Fist release time", editable=False, default=timezone.now)
+    url_cze = models.SlugField(
+        "Post URL CZE", unique=True, max_length=100, editable=False
+    )
+    url_eng = models.SlugField(
+        "Post URL ENG",
+        unique=True,
+        max_length=100,
+        blank=True,
+        null=True,
+        editable=False,
+        default=None,
+    )
+    pub_time = models.DateTimeField(
+        "Fist release time", editable=False, default=timezone.now
+    )
     # for pub_time I can use auto_now_add , but it is not working for import, where is another time
     mod_time = models.DateTimeField("Last modification time", auto_now=True)
     author = models.ForeignKey("Author", on_delete=models.PROTECT)
