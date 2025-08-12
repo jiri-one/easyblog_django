@@ -34,11 +34,11 @@ dev = [
 ]
 
 [tool.tox]
-envlist = ["py313", "pyright", "ruff"]
+envlist = ["313", "pyright", "ruff"]
 skipsdist = true
 
-[tool.tox.gh-actions]
-python = { "3.13" = ["py313", "pyright", "ruff"] }
+[tool.tox.gh.python]
+"3.13" = ["3.13", "pyright", "ruff"]
 
 [tool.tox.testenv]
 passenv = ["SYSTEM_ENV"]
