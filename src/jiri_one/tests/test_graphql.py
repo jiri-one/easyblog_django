@@ -5,6 +5,7 @@ import string
 from typing import Any
 
 import pytest
+from django.db.models import Count, QuerySet
 from graphene.test import Client
 
 # internal imports
@@ -14,9 +15,17 @@ from jiri_one.models import Comment, Post, Tag
 from jiri_one.schema import schema
 
 
+def create_random_comment(post: Post) -> Comment:
+    return Comment.objects.create(
+        post=post,
+        title="".join(random.choices(string.ascii_letters + string.digits, k=10)),
+        nick="".join(random.choices(string.ascii_letters + string.digits, k=10)),
+        content="".join(random.choices(string.ascii_letters + string.digits, k=10)),
+    )
+
+
 @pytest.fixture
-def create_random_tags():
-    tags = list[Tag]()
+def create_random_tags() -> QuerySet[Tag]:
     for order_int in range(1, 11):
         random_name = "".join(
             random.choices(string.ascii_letters + string.digits, k=10)
@@ -24,18 +33,14 @@ def create_random_tags():
         random_desc = "".join(
             random.choices(string.ascii_letters + string.digits, k=100)
         )
-        tag = Tag.objects.create(
-            name_cze=random_name, desc_cze=random_desc, order=order_int
-        )
-        tags.append(tag)
-    yield tags
+        Tag.objects.create(name_cze=random_name, desc_cze=random_desc, order=order_int)
+    return Tag.objects.all()
 
 
 @pytest.fixture
-def create_random_posts(create_random_tags):
-    tags: list[Tag] = create_random_tags
-    posts = list[Post]()
-    for _ in range(10):
+def create_random_posts(create_random_tags) -> tuple[QuerySet[Post], QuerySet[Tag]]:
+    tags: QuerySet[Tag] = create_random_tags
+    for _ in range(random.randint(1, 10)):
         random_title = "".join(
             random.choices(string.ascii_letters + string.digits, k=10)
         )
@@ -45,21 +50,28 @@ def create_random_posts(create_random_tags):
         post = create_post(random_title, random_content)
         post_tags = random.choices(tags, k=3)
         post.tags.add(*post_tags)
+        [create_random_comment(post) for _ in range(random.randint(0, 10))]
         post.save()
-        posts.append(post)
+    posts: QuerySet[Post] = (
+        Post.objects.select_related("author")
+        .annotate(comments_count=Count("comments"))
+        .order_by("-id")
+        .all()
+    )
     return posts, tags
 
 
 @pytest.mark.django_db
 def test_all_posts_graphql_query(create_random_posts):
     random_posts, _ = create_random_posts
-    posts = list[dict[str, str]]()
+    posts = list[dict[str, Any]]()
     for post in random_posts:
         posts.append(
             dict(
                 id=post.id,
                 titleCze=post.title_cze,
                 contentCze=post.content_cze,
+                commentsCount=post.comments_count,
             )
         )
     client = Client(schema)
@@ -69,6 +81,7 @@ def test_all_posts_graphql_query(create_random_posts):
             id
             titleCze
             contentCze
+            commentsCount
         }
     }
     """
@@ -91,6 +104,7 @@ def test_random_post_by_url_graphql_query(create_random_posts):
                 tags {
                     nameCze
                 }
+                commentsCount
             }
         }
         """.replace("POST_URL", post.url_cze)
@@ -99,6 +113,9 @@ def test_random_post_by_url_graphql_query(create_random_posts):
         graphql_post = response["data"]["postByUrl"]
         assert graphql_post["titleCze"] == post.title_cze
         assert graphql_post["contentCze"] == post.content_cze
+        assert (
+            graphql_post["commentsCount"] == Comment.objects.filter(post=post).count()
+        )
 
 
 @pytest.mark.django_db
@@ -162,7 +179,7 @@ def test_random_post_by_tags_graphql_query(create_random_posts):
 
 @pytest.mark.django_db
 def test_all_tags_graphql_query(create_random_tags):
-    tags = list[dict[str, str]]()
+    tags = list[dict[str, Any]]()
     for tag in create_random_tags:
         tags.append(
             dict(
@@ -191,7 +208,9 @@ def test_all_tags_graphql_query(create_random_tags):
 def test_add_comment_with_graphql(create_random_posts, caplog):
     # Use the first post from the fixture
     posts, _ = create_random_posts
-    first_post = posts[0]
+    first_post = posts.last()  # first like with id 1, like the oldest
+    comment_count = first_post.comments_count
+    assert Comment.objects.filter(post=first_post).count() == comment_count
     client = Client(schema)
     mutation = """
     mutation CreateComment {
@@ -223,7 +242,8 @@ def test_add_comment_with_graphql(create_random_posts, caplog):
             f"Comment created successfully for Post ID {first_post.id} by JohnDoe."
             in caplog.text
         )
-
+    new_comment = Comment.objects.filter(post=first_post).order_by("pub_time").last()
+    assert new_comment is not None
     expected_response = json.loads(
         """
     {
@@ -232,29 +252,31 @@ def test_add_comment_with_graphql(create_random_posts, caplog):
             "success": true,
             "message": "Comment created successfully.",
             "comment": {
-                "id": "1",
+                "id": "COMMENT_ID",
                 "title": "Great article!",
                 "content": "This is a very informative post. Thanks for sharing your insights on this topic.",
                 "nick": "JohnDoe",
                 "pubTime": "PUB_TIME",
                 "post": {
-                "id": 1,
+                "id": POST_ID,
                 "titleCze": "TITLE_CZE"
                 }
             }
             }
         }
     }
-    """.replace("TITLE_CZE", first_post.title_cze).replace(
-            "PUB_TIME", Comment.objects.filter(post=first_post)[0].pub_time.isoformat()
-        )
+    """.replace("TITLE_CZE", first_post.title_cze)
+        .replace("PUB_TIME", new_comment.pub_time.isoformat())
+        .replace("POST_ID", str(first_post.id))
+        .replace("COMMENT_ID", str(new_comment.id))
     )
 
     assert response is not None and "data" in response
     assert response == expected_response
+    assert Comment.objects.filter(post=first_post).count() == comment_count + 1
 
 
-test_data = [
+test_data: list[tuple[str, str, str, str | None]] = [
     (
         "1",  # correct post_id
         "9999",
