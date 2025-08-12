@@ -1,7 +1,7 @@
 from django.test import TestCase
 
 # from django.db.models.query import QuerySet
-from jiri_one.models import Post, Author
+from jiri_one.models import Author, Post
 
 
 def create_post(title_cze: str, content_cze: str) -> Post:

@@ -1,4 +1,7 @@
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
+from graphene_django.views import GraphQLView
+
 from . import views
 
 app_name = "jiri_one"
@@ -17,4 +20,5 @@ urlpatterns = [
     path("hledej/<str:hledej>/page/<int:page>/", views.IndexView.as_view()),
     path("deploy_api/", views.DeployApiView.as_view()),
     path("<slug:url_cze>/", views.PostView.as_view()),
+    path("graphql", csrf_exempt(GraphQLView.as_view(graphiql=True))),
 ]

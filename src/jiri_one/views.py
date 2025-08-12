@@ -1,27 +1,27 @@
-from django.views import View
-from django.db.models import Q, QuerySet, Count
-from django.shortcuts import redirect, render
-from django.http import (
-    HttpResponseForbidden,
-    HttpResponseServerError,
-    HttpRequest,
-    HttpResponse,
-)
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.encoding import force_bytes
-from django.conf import settings
-from django.core.paginator import Paginator
-from hashlib import sha256
 import hmac
-from ipaddress import ip_address, ip_network
-import httpx
 import json
+from hashlib import sha256
+from ipaddress import ip_address, ip_network
 from subprocess import Popen
 
+import httpx
+from django.conf import settings
+from django.core.paginator import Paginator
+from django.db.models import Count, Q, QuerySet
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    HttpResponseForbidden,
+    HttpResponseServerError,
+)
+from django.shortcuts import redirect, render
+from django.utils.decorators import method_decorator
+from django.utils.encoding import force_bytes
+from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 
 # internal imports
-from jiri_one.models import Post, Comment, Tag
+from jiri_one.models import Comment, Post, Tag
 
 # helper variables
 TagDoesNotExist = Tag.DoesNotExist
@@ -33,6 +33,7 @@ async def get_post_html_tags(post_tags: QuerySet[Tag]):
     async for tag in post_tags.values():
         tags_links.append(f"""<a href="/tag/{tag["url_cze"]}">{tag["name_cze"]}</a>""")
     return ", ".join(tags_links)
+
 
 async def get_all_html_tags():
     nr_of_tags: int = await Tag.objects.acount()
@@ -46,11 +47,12 @@ async def get_all_html_tags():
         index += 1
     return html_tags
 
+
 class PostView(View):
     """Class for showing one post/entry."""
-    
+
     template_name = "post.html"
-        
+
     async def get(self, request, url_cze, *args, **kwargs):
         """GET method to show one Post."""
         try:
@@ -58,10 +60,13 @@ class PostView(View):
         except Post.DoesNotExist:
             return HttpResponseServerError("This post does not exist.", status=404)
         all_tags_html = await get_all_html_tags()
-        post.html_tags = await get_post_html_tags(post.tags)
+        post.html_tags = await get_post_html_tags(Tag.objects.filter(post=post))
         comments = [comment async for comment in Comment.objects.filter(post=post)]
-        return render(request, self.template_name, {"post": post, "comments": comments, "all_tags": all_tags_html})
-        
+        return render(
+            request,
+            self.template_name,
+            {"post": post, "comments": comments, "all_tags": all_tags_html},
+        )
 
     async def post(self, request, url_cze, *args, **kwargs):
         """POST method for save comment."""
@@ -72,11 +77,13 @@ class PostView(View):
                 raise ValueError
         except ValueError:
             return HttpResponseForbidden("Musíte správně vyplnit pole Antispam!")
-        
+
         try:
             post = await Post.objects.select_related("author").aget(url_cze=url_cze)
         except Post.DoesNotExist:
-            return HttpResponseServerError("You are trying to send comment for non existent Post.", status=404)
+            return HttpResponseServerError(
+                "You are trying to send comment for non existent Post.", status=404
+            )
         # comment save part
         header = request.POST.get("comment_header")
         nick = request.POST.get("comment_nick")
@@ -93,24 +100,29 @@ class IndexView(View):
     template_name = "index.html"
 
     async def get(self, request: HttpRequest, *args, **kwargs):
-        queryset: QuerySet = Post.objects.select_related("author").annotate(Count("comments")).order_by("-id") # lazy object - will not access DB
+        queryset: QuerySet = (
+            Post.objects.select_related("author")
+            .annotate(Count("comments"))
+            .order_by("-id")
+        )  # lazy object - will not access DB
         all_tags_html = await get_all_html_tags()
 
         # get tag
+        tag: None | Tag = None
         if "tag" in kwargs:
-            try: # try to find Tag in czech url
-                tag: Tag = await Tag.objects.aget(url_cze=kwargs["tag"])
+            try:  # try to find Tag in czech url
+                tag = await Tag.objects.aget(url_cze=kwargs["tag"])
             except TagDoesNotExist:
-                tag = None
-            if tag is None: # we didn't find Tag by czech, we will try english
+                # we didn't find Tag by czech, we will try english
                 try:
-                    tag: Tag = await Tag.objects.aget(url_eng=kwargs["tag"])
+                    tag = await Tag.objects.aget(url_eng=kwargs["tag"])
                 except TagDoesNotExist:
-                    tag = None
+                    assert tag is None
+                    # TODO: some log here
             if tag is not None:
                 queryset = queryset.filter(tags=tag)
                 # TODO: now we are handle only one tag, in the future, we should handle combinations
-        
+
         # get search
         if "search" in kwargs or "hledej" in kwargs:
             search_cze: str | None = kwargs.get("hledej")
@@ -119,8 +131,7 @@ class IndexView(View):
             search: str | None = search_cze or search_eng or default_search
             if search is not None:
                 queryset = queryset.filter(
-                    Q(content_cze__icontains=search)
-                    | Q(title_cze__icontains=search)
+                    Q(content_cze__icontains=search) | Q(title_cze__icontains=search)
                 )
         # get the page number
         page_cze: int | None = kwargs.get("strana")
@@ -138,10 +149,13 @@ class IndexView(View):
         async for post in queryset.all():
             post.html_tags = await get_post_html_tags(post.tags)
             posts.append(post)
-        
-        return render(request, self.template_name, {"page_obj": page_obj, "posts": posts, "all_tags": all_tags_html})
-        
-    
+
+        return render(
+            request,
+            self.template_name,
+            {"page_obj": page_obj, "posts": posts, "all_tags": all_tags_html},
+        )
+
     async def post(self, request: HttpRequest, *args, **kwargs):
         searched_word = request.POST.get("search")
         return redirect(f"hledej/{searched_word}")
@@ -158,6 +172,7 @@ class DeployApiView(View):
             return HttpResponseServerError("Problem on server side!", status=501)
         # Verify if request came from GitHub
         forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        assert forwarded_for is not None
         req_ip_address = ip_address(forwarded_for)  # get real IP adress
         whitelist = httpx.get("https://api.github.com/meta").json()["hooks"]
         # check if req_ip_address is in ip network range

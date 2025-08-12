@@ -1,116 +1,67 @@
-[tool.poetry]
-name = "easyblog-django"
-version = "0.1.1"
-description = "Blog CMS for http://jiri.one site."
-authors = ["Jiří Němec <jiri1@duck.com>"]
-license = "GPL3"
-readme = "README.md"
-packages = [{include = "easyblog_django"}]
-
-[tool.poetry.dependencies]
-python = "^3.11"
-Django = "^5.0.0"
-beautifulsoup4 = "^4.11.1"
-httpx = "^0.23.0"
-psycopg2-binary = "^2.9.5"
-django-prose = "^2.0.0"
-daphne = "^4.1.2"
-
-[tool.poetry.group.tests]
-optional = true
-
-[tool.poetry.group.tests.dependencies]
-pytest = "^7.1.3"
-pytest-django = "^4.5.2"
-
-[tool.poetry.group.mypy]
-optional = true
-
-[tool.poetry.group.mypy.dependencies]
-mypy = "^0.971"
-django-stubs = "^1.12.0"
-types-beautifulsoup4 = "^4.11.6"
-
-[tool.poetry.group.tox]
-optional = true
-
-[tool.poetry.group.tox.dependencies]
-tox = "^3.26.0"
-
-[tool.poetry.group.pyflakes]
-optional = true
-
-[tool.poetry.group.pyflakes.dependencies]
-pyflakes = "^2.5.0"
-
-[tool.poetry.group.production]
-optional = true
-
-[tool.poetry.group.production.dependencies]
-gunicorn = "^20.1.0"
-
-
-[tool.poetry.group.dev.dependencies]
-black = "^23.1.0"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
-# PyTest configuration
-[tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "easyblog.settings"
+[project]
+name = "easyblog-django"
+version = "1.0.0"
+description = "Blog CMS for http://jiri.one site."
+authors = [
+  {email = "jiri1@duck.com"},
+  {name = "Jiří Němec"}
+]
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE.txt"]
+readme = "README.md"
+dependencies = [
+  "psycopg2-binary>=2.9.5",
+  "beautifulsoup4>=4.11.1",
+  "django>=5.2",
+  "django-prose",
+  "httpx",
+  "daphne",
+  "graphene-django>=3.2.3",
+  "markdown"
+]
 
-# MyPY configuration
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-plugins = ["mypy_django_plugin.main"]
+[project.optional-dependencies]
+dev = [
+  "django-stubs",
+  "pytest",
+  "pytest-django",
+  "pyright",
+  "ruff",
+]
 
-[tool.django-stubs]
-django_settings_module = "easyblog.settings"
-
-[[tool.mypy.overrides]]
-module = "rethinkdb.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "*.migrations.*"
-ignore_errors = true
-
-# Tox configuration
 [tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py310, mypy, pyflakes
-skipsdist = True
+envlist = ["313", "pyright", "ruff"]
+skipsdist = true
 
-[gh-actions]
-python =
-    3.10: py310, mypy, pyflakes
+[tool.tox.gh.python]
+"3.13" = ["3.13", "pyright", "ruff"]
 
-[testenv]
-passenv = SYSTEM_ENV
-deps =
-    poetry
-commands =
-    poetry install --no-root --with tests
-    poetry run python -m pytest -v
+[tool.tox.testenv]
+passenv = ["SYSTEM_ENV"]
+commands = [
+  "pip install '.[dev]'",
+  "pytest -v"
+]
 
-[testenv:mypy]
-basepython = python3.10
-deps =
-    poetry
-commands =
-    poetry install --no-root --with mypy
-    poetry run python -m mypy easyblog jiri_one
+[tool.tox.testenv.pyright]
+basepython = "python3.13"
+commands = [
+  "pip install '.[dev]'",
+  "pyright"
+]
 
-[testenv:pyflakes]
-basepython = python3.10
-deps =
-    poetry
-commands =
-    poetry install --no-root --with pyflakes
-    poetry run python -m pyflakes easyblog jiri_one
-"""
+[tool.tox.testenv.ruff]
+basepython = "python3.13"
+commands = [
+  "pip install '.[dev]'",
+  "ruff check src"
+]
+
+[tool.pylance]
+typeCheckingMode = "strict"
+reportMissingImports = true
+reportMissingTypeStubs = false

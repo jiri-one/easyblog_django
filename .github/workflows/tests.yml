@@ -26,16 +26,16 @@ jobs:
         options: --mount type=tmpfs,destination=/var/lib/postgresql/data --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install Poetry
-        run: pip install poetry
       - name: Install dependencies
-        run: poetry install --no-root --with tests
+        run: pip install '.[dev]'
+      - name: Remove installed easyblog_django
+        run: pip uninstall -y easyblog_django
       - name: Run tests
-        run: poetry run pytest
+        run: pytest -v
         env:
           SYSTEM_ENV: GITHUB_WORKFLOW
