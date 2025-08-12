@@ -8,7 +8,7 @@ on:
 
 jobs:
   tox_tests:
-    name: Tox - PyTest, MyPy, PyFlakes
+    name: Tox - PyTest, PyRight, Ruff
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
