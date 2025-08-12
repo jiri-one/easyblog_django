@@ -268,7 +268,7 @@ def test_add_comment_with_graphql(create_random_posts, caplog):
     """.replace("TITLE_CZE", first_post.title_cze)
         .replace("PUB_TIME", new_comment.pub_time.isoformat())
         .replace("POST_ID", str(first_post.id))
-        .replace("COMMENT_ID", str(new_comment.id))
+        .replace("COMMENT_ID", str(new_comment.id))  # type: ignore
     )
 
     assert response is not None and "data" in response
