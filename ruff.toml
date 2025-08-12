@@ -1,3 +1,10 @@
+exclude = [
+    "src/easyblog/migrations",
+    "src/jiri_one/migrations",
+    "src/utils",
+    "src/jiri_one/management",
+]
+
 [lint]
 # Enable comprehensive rule sets
 select = [
