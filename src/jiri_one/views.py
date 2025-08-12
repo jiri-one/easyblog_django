@@ -60,7 +60,7 @@ class PostView(View):
         except Post.DoesNotExist:
             return HttpResponseServerError("This post does not exist.", status=404)
         all_tags_html = await get_all_html_tags()
-        post.html_tags = await get_post_html_tags(post.tags)
+        post.html_tags = await get_post_html_tags(Tag.objects.filter(post=post))
         comments = [comment async for comment in Comment.objects.filter(post=post)]
         return render(
             request,
@@ -172,6 +172,7 @@ class DeployApiView(View):
             return HttpResponseServerError("Problem on server side!", status=501)
         # Verify if request came from GitHub
         forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        assert forwarded_for is not None
         req_ip_address = ip_address(forwarded_for)  # get real IP adress
         whitelist = httpx.get("https://api.github.com/meta").json()["hooks"]
         # check if req_ip_address is in ip network range

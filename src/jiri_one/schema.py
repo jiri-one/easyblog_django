@@ -154,7 +154,9 @@ class CreateComment(graphene.Mutation):
                 f"Comment created successfully for Post ID {post_id} by {nick}."
             )
             return CreateComment(
-                comment=comment, success=True, message="Comment created successfully."
+                comment=comment,  # type: ignore[call-arg]
+                success=True,  # type: ignore[call-arg]
+                message="Comment created successfully.",  # type: ignore[call-arg]
             )
         except Exception as e:
             logger.error(f"Failed to create comment for Post ID {post_id}: {str(e)}")
