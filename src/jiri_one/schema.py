@@ -2,6 +2,7 @@ from logging import getLogger
 
 import graphene
 from django.conf import settings
+from django.db.models import Count
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 
@@ -16,9 +17,15 @@ get_offset = lambda page: (page - 1) * POSTS_ON_PAGE
 
 
 class PostType(DjangoObjectType):
+    comments_count = graphene.Int()
+
     class Meta:
         model = Post
-        fields = ("id", "title_cze", "content_cze", "url_cze", "tags")
+        fields = ("id", "pub_time", "title_cze", "content_cze", "url_cze", "tags")
+
+    # Custom resolver for count field
+    def resolve_comments_count(post_instance, info):
+        return post_instance.comments.count()  # type: ignore
 
 
 class TagType(DjangoObjectType):
@@ -65,7 +72,12 @@ class Query(graphene.ObjectType):
             logger.info("Someone tried to put bad page number")
             page = 1
         offset = get_offset(page)
-        return Post.objects.all()[offset : offset + POSTS_ON_PAGE]
+        return (
+            Post.objects.select_related("author")
+            .annotate(comments_count=Count("comments"))
+            .order_by("-id")
+            .all()[offset : offset + POSTS_ON_PAGE]
+        )
 
     def resolve_posts_by_tags_url(root, info, tag_urls, page=1):
         if page < 1:
@@ -82,12 +94,16 @@ class Query(graphene.ObjectType):
 
         # Filter posts by the fetched tags
         offset = get_offset(page)
-        return Post.objects.filter(tags__in=tags).distinct()[
-            offset : offset + POSTS_ON_PAGE
-        ]
+        return (
+            Post.objects.select_related("author")
+            .annotate(comments_count=Count("comments"))
+            .order_by("-id")
+            .filter(tags__in=tags)
+            .distinct()[offset : offset + POSTS_ON_PAGE]
+        )
 
     def resolve_all_tags(root, info):
-        return Tag.objects.all()
+        return Tag.objects.order_by("order").all()
 
     # TODO: implement search in posts!
 
