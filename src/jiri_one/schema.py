@@ -2,7 +2,7 @@ from logging import getLogger
 
 import graphene
 from django.conf import settings
-from django.db.models import Count
+from django.db.models import Count, Q
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 
@@ -49,6 +49,9 @@ class Query(graphene.ObjectType):
         tag_urls=graphene.List(graphene.String),
         required=True,
         page=graphene.Int(required=False),
+    )
+    posts_by_search = graphene.List(
+        PostType, text=graphene.String(required=True), page=graphene.Int(required=False)
     )
     all_tags = graphene.List(TagType)
     # TODO: think about pagination (it can be handled in frontend, but to save DB connections it can be handled here too)
@@ -99,6 +102,19 @@ class Query(graphene.ObjectType):
             .annotate(comments_count=Count("comments"))
             .order_by("-id")
             .filter(tags__in=tags)
+            .distinct()[offset : offset + POSTS_ON_PAGE]
+        )
+
+    def resolve_posts_by_search(root, info, text, page=1):
+        if page < 1:
+            logger.info("Someone tried to put bad page number")
+            page = 1
+        offset = get_offset(page)
+        return (
+            Post.objects.select_related("author")
+            .annotate(comments_count=Count("comments"))
+            .order_by("-id")
+            .filter(Q(content_cze__icontains=text) | Q(title_cze__icontains=text))
             .distinct()[offset : offset + POSTS_ON_PAGE]
         )
 
