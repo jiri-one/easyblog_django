@@ -15,6 +15,14 @@ from jiri_one.models import Comment, Post, Tag
 from jiri_one.schema import schema
 
 
+def get_random_part_of_string(string: str) -> str:
+    """This function will return random part of string at minimum 3 chars length."""
+    maximum_index = len(string)
+    first = random.randrange(0, round(maximum_index / 2))
+    second = random.randrange(first + 3, maximum_index)
+    return string[first:second]
+
+
 def create_random_comment(post: Post) -> Comment:
     return Comment.objects.create(
         post=post,
@@ -350,3 +358,41 @@ def test_add_comment_with_graphql_error(
 
     assert response is not None and "errors" in response
     assert response["errors"][0]["message"] == expected_error_msg
+
+
+@pytest.mark.django_db
+def test_search_posts_by_graphql_query(create_random_posts):
+    client = Client(schema)
+    posts, _ = create_random_posts
+    post_data_dict = dict[str, dict[str, Any]]()
+    random_posts = random.choices(posts, k=3)
+
+    for post in random_posts:
+        where_to_search: str = random.choice([post.title_cze, post.content_cze])
+        random_part_of_text: str = get_random_part_of_string(where_to_search)
+        post_data_dict[random_part_of_text] = dict(
+            id=post.id,
+            titleCze=post.title_cze,
+            contentCze=post.content_cze,
+            tags=[{"urlCze": tag.url_cze} for tag in post.tags.all()],
+        )
+
+    for text, post in post_data_dict.items():
+        query = """
+        query {
+            postsBySearch(text: "TEXT") {
+                titleCze
+                contentCze
+                id
+                tags {
+                    urlCze
+                }
+            }
+        }
+        """.replace("TEXT", text)
+
+        response = client.execute(query)
+        assert response is not None and "data" in response
+        graphql_posts = response["data"]["postsBySearch"]
+        # I shouldn't do to compare directly graphql_posts with post because there can be more posts witch searched text in graphql_posts (they can contain same text). It is low probability, but it is possible
+        assert post in graphql_posts
