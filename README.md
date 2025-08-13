@@ -7,7 +7,7 @@ Tox based tests status (PyTest, PyRight, Ruff): [![Tox Tests](https://github.com
 
 Main features of blog:
 - extensively tested (PyTest and PyTest Django)
-- for code are used linters and checkers (MyPy and PyFlakes)
+- for code are used linters and checkers (PyRight and Ruff)
 - automatic deploy to server witch GitHub WebHooks (every tag is automatically deployed to server)
 
 ## How to run it
