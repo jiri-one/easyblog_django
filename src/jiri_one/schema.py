@@ -1,8 +1,12 @@
+import hashlib
+import hmac
 from logging import getLogger
 
 import graphene
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Count, Q
+from django.utils import timezone
 from graphene_django import DjangoObjectType
 from graphql import GraphQLError
 
@@ -14,6 +18,35 @@ POSTS_ON_PAGE = settings.POSTS_ON_PAGE
 
 # helper functions
 get_offset = lambda page: (page - 1) * POSTS_ON_PAGE
+
+
+def get_client_ip(info) -> str:
+    """Extract client IP from GraphQL request info"""
+    try:
+        request = info.context
+        if request and hasattr(request, "META"):
+            x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+            if x_forwarded_for:
+                return x_forwarded_for.split(",")[0].strip()
+            return request.META.get("REMOTE_ADDR", "unknown")
+    except (AttributeError, TypeError):
+        pass
+
+    # Fallback for test environment
+    return "test_client"
+
+
+def check_comment_rate_limit(ip_address: str) -> None:
+    """Check if IP has exceeded comment creation rate limit"""
+    cache_key = f"comment_rate_{ip_address}"
+    requests = cache.get(cache_key, 0)
+
+    if requests >= 5:  # max 5 comments per hour
+        logger.warning(f"Comment rate limit exceeded for IP {ip_address}")
+        raise GraphQLError("Too many comments. Please try again in an hour.")
+
+    # Increment counter with 1 hour expiry
+    cache.set(cache_key, requests + 1, 3600)
 
 
 class PostType(DjangoObjectType):
@@ -130,13 +163,48 @@ class CreateComment(graphene.Mutation):
         title = graphene.String(required=True)
         content = graphene.String(required=True)
         nick = graphene.String(required=True)
+        # API authentication
+        api_key = graphene.String(required=True)
+        timestamp = graphene.String(required=True)
+        signature = graphene.String(required=True)
 
     # The response of the mutation
     comment = graphene.Field(lambda: CommentType)
     success = graphene.Boolean()
     message = graphene.String()
 
-    def mutate(self, info, post_id, title, content, nick):  # Validate inputs
+    def mutate(
+        self, info, post_id, title, content, nick, api_key, timestamp, signature
+    ):
+        # Verify API key
+        if api_key != settings.FLUTTER_API_KEY:
+            logger.warning(f"Invalid API key from IP {get_client_ip(info)}")
+            raise GraphQLError("Unauthorized access.")
+
+        # Verify timestamp (prevent replay attacks)
+        try:
+            request_time = int(timestamp)
+            current_time = int(timezone.now().timestamp())
+            if abs(current_time - request_time) > 300:  # 5 minutes tolerance
+                raise GraphQLError("Request expired.")
+        except ValueError as e:
+            raise GraphQLError("Invalid timestamp.") from e
+
+        # Verify signature (prevent tampering)
+        expected_signature = hmac.new(
+            settings.FLUTTER_API_SECRET.encode(),
+            f"{post_id}{title}{content}{nick}{timestamp}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+        if not hmac.compare_digest(signature, expected_signature):
+            logger.warning(f"Invalid signature from IP {get_client_ip(info)}")
+            raise GraphQLError("Invalid request signature.")
+
+        # Rate limiting per IP (stále užitečné)
+        check_comment_rate_limit(get_client_ip(info))
+
+        # Validate inputs
         if not title.strip():
             raise GraphQLError("Title cannot be empty.")
         if len(title.strip()) > 200:
@@ -153,15 +221,15 @@ class CreateComment(graphene.Mutation):
             raise GraphQLError("Nick is too long.")
 
         try:
-            Post.objects.get(id=post_id)
+            post = Post.objects.get(id=post_id)
         except Post.DoesNotExist as exc:
             logger.error(
-                f"Failed to create comment for Post ID {post_id}, post doesn't exists."
+                f"Failed to create comment for Post ID {post_id}, post doesn't exist."
             )
             raise GraphQLError("Failed to create comment. Please try again.") from exc
         try:
             comment = Comment.objects.create(
-                post=Post.objects.get(id=post_id),
+                post=post,
                 title=title.strip(),
                 content=content.strip(),
                 nick=nick.strip(),
