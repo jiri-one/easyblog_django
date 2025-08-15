@@ -222,3 +222,15 @@ LOGGING = {
         },
     },
 }
+
+# Flutter API keys
+FLUTTER_API_KEY = os.environ.get("FLUTTER_API_KEY")
+FLUTTER_API_SECRET = os.environ.get("FLUTTER_API_SECRET")
+
+# Cache configuration
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
+    }
+}
