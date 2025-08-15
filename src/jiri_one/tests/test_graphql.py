@@ -1,10 +1,14 @@
+import hashlib
+import hmac
 import json
 import logging
 import random
 import string
+from datetime import datetime
 from typing import Any
 
 import pytest
+from django.conf import settings
 from django.db.models import Count, QuerySet
 from graphene.test import Client
 
@@ -213,70 +217,91 @@ def test_all_tags_graphql_query(create_random_tags):
 
 
 @pytest.mark.django_db
-def test_add_comment_with_graphql(create_random_posts, caplog):
+def test_add_comment_with_graphql(create_random_posts, caplog, monkeypatch):
+    # we need to mock FLUTTER frontend keys
+    api_key = "fake_api_key"
+    api_secret = "fake_api_secret"
+    monkeypatch.setattr(settings, "FLUTTER_API_KEY", api_key)
+    monkeypatch.setattr(settings, "FLUTTER_API_SECRET", api_secret)
     # Use the first post from the fixture
     posts, _ = create_random_posts
     first_post = posts.last()  # first like with id 1, like the oldest
     comment_count = first_post.comments_count
     assert Comment.objects.filter(post=first_post).count() == comment_count
+
     client = Client(schema)
-    mutation = """
-    mutation CreateComment {
+
+    post_id = first_post.id
+    title = "Great article!"
+    content = "This is a very informative post. Thanks for sharing your insights on this topic."
+    nick = "JohnDoe"
+    timestamp = str(int(datetime.now().timestamp()))
+    message = f"{post_id}{title}{content}{nick}{timestamp}"
+    signature = hmac.new(
+        api_secret.encode(), message.encode(), hashlib.sha256
+    ).hexdigest()
+
+    client = Client(schema)
+    mutation = f"""
+    mutation CreateComment {{
         createComment(
-            postId: POST_ID,
-            title: "Great article!",
-            content: "This is a very informative post. Thanks for sharing your insights on this topic.",
-            nick: "JohnDoe"
-        ) {
+            postId: {post_id},
+            title: "{title}",
+            content: "{content}",
+            nick: "{nick}",
+            apiKey: "{api_key}",
+            timestamp: "{timestamp}",
+            signature: "{signature}"
+        ) {{
             success
             message
-            comment {
-            id
-            title
-            content
-            nick
-            pubTime
-            post {
+            comment {{
                 id
-                titleCze
-            }
-            }
-        }
-    }
-    """.replace("POST_ID", str(first_post.id))
+                title
+                content
+                nick
+                pubTime
+                post {{
+                    id
+                    titleCze
+                }}
+            }}
+        }}
+    }}
+    """
+
     with caplog.at_level(logging.INFO, logger="jiri_one"):
         response = client.execute(mutation)
         assert (
-            f"Comment created successfully for Post ID {first_post.id} by JohnDoe."
+            f"Comment created successfully for Post ID {post_id} by JohnDoe."
             in caplog.text
         )
+
     new_comment = Comment.objects.filter(post=first_post).order_by("pub_time").last()
     assert new_comment is not None
+    new_comment_id = str(new_comment.id)  # type: ignore
     expected_response = json.loads(
-        """
-    {
-        "data": {
-            "createComment": {
+        f"""
+    {{
+        "data": {{
+            "createComment": {{
             "success": true,
             "message": "Comment created successfully.",
-            "comment": {
-                "id": "COMMENT_ID",
-                "title": "Great article!",
-                "content": "This is a very informative post. Thanks for sharing your insights on this topic.",
-                "nick": "JohnDoe",
-                "pubTime": "PUB_TIME",
-                "post": {
-                "id": POST_ID,
-                "titleCze": "TITLE_CZE"
-                }
-            }
-            }
-        }
-    }
-    """.replace("TITLE_CZE", first_post.title_cze)
-        .replace("PUB_TIME", new_comment.pub_time.isoformat())
-        .replace("POST_ID", str(first_post.id))
-        .replace("COMMENT_ID", str(new_comment.id))  # type: ignore
+            "comment": {{
+                "id": "{new_comment_id}",
+                "title": "{title}",
+                "content": "{content}",
+                "nick": "{nick}",
+                "pubTime": "{new_comment.pub_time.isoformat()}",
+                "post": {{
+                "id": {post_id},
+                "titleCze": "{first_post.title_cze}"
+                }}
+            }}
+            }}
+        }}
+    }}
+    """
     )
 
     assert response is not None and "data" in response
