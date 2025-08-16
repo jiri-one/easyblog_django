@@ -1,5 +1,3 @@
-import hashlib
-import hmac
 import json
 import logging
 import random
@@ -16,7 +14,7 @@ from graphene.test import Client
 from test_views import create_post
 
 from jiri_one.models import Comment, Post, Tag
-from jiri_one.schema import schema
+from jiri_one.schema import get_expected_signature, schema
 
 
 def get_random_part_of_string(string: str) -> str:
@@ -236,10 +234,10 @@ def test_add_comment_with_graphql(create_random_posts, caplog, monkeypatch):
     content = "This is a very informative post. Thanks for sharing your insights on this topic."
     nick = "JohnDoe"
     timestamp = str(int(datetime.now().timestamp()))
-    message = f"{post_id}{title}{content}{nick}{timestamp}"
-    signature = hmac.new(
-        api_secret.encode(), message.encode(), hashlib.sha256
-    ).hexdigest()
+
+    signature = get_expected_signature(
+        api_secret, post_id, title, content, nick, timestamp
+    )
 
     client = Client(schema)
     mutation = f"""

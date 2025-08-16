@@ -17,6 +17,7 @@ logger = getLogger("jiri_one")
 POSTS_ON_PAGE = settings.POSTS_ON_PAGE
 
 # helper functions
+
 get_offset = lambda page: (page - 1) * POSTS_ON_PAGE
 
 
@@ -47,6 +48,22 @@ def check_comment_rate_limit(ip_address: str) -> None:
 
     # Increment counter with 1 hour expiry
     cache.set(cache_key, requests + 1, 3600)
+
+
+def get_expected_signature(
+    api_secret: str,
+    post_id: int | str,
+    title: str,
+    content: str,
+    nick: str,
+    timestamp: str | int,
+):
+    # Verify signature (prevent tampering)
+    return hmac.new(
+        api_secret.encode(),
+        f"{post_id}{title}{content}{nick}{timestamp}".encode(),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 class PostType(DjangoObjectType):
@@ -190,12 +207,9 @@ class CreateComment(graphene.Mutation):
         except ValueError as e:
             raise GraphQLError("Invalid timestamp.") from e
 
-        # Verify signature (prevent tampering)
-        expected_signature = hmac.new(
-            settings.FLUTTER_API_SECRET.encode(),
-            f"{post_id}{title}{content}{nick}{timestamp}".encode(),
-            hashlib.sha256,
-        ).hexdigest()
+        expected_signature = get_expected_signature(
+            settings.FLUTTER_API_SECRET, post_id, title, content, nick, timestamp
+        )
 
         if not hmac.compare_digest(signature, expected_signature):
             logger.warning(f"Invalid signature from IP {get_client_ip(info)}")
