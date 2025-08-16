@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 import pytest
+from attr import dataclass
 from django.conf import settings
 from django.db.models import Count, QuerySet
 from graphene.test import Client
@@ -14,7 +15,8 @@ from graphene.test import Client
 from test_views import create_post
 
 from jiri_one.models import Comment, Post, Tag
-from jiri_one.schema import get_expected_signature, schema
+from jiri_one.schema import get_expected_signature as get_signature
+from jiri_one.schema import schema
 
 
 def get_random_part_of_string(string: str) -> str:
@@ -235,9 +237,7 @@ def test_add_comment_with_graphql(create_random_posts, caplog, monkeypatch):
     nick = "JohnDoe"
     timestamp = str(int(datetime.now().timestamp()))
 
-    signature = get_expected_signature(
-        api_secret, post_id, title, content, nick, timestamp
-    )
+    signature = get_signature(api_secret, post_id, title, content, nick, timestamp)
 
     client = Client(schema)
     mutation = f"""
@@ -309,23 +309,23 @@ def test_add_comment_with_graphql(create_random_posts, caplog, monkeypatch):
 
 test_data: list[tuple[str, str, str, str | None]] = [
     (
-        "1",  # correct post_id
+        "post_id",
         "9999",
         "Failed to create comment. Please try again.",
-        "Failed to create comment for Post ID 9999, post doesn't exists.",
+        "Failed to create comment for Post ID 9999, post doesn't exist.",
     ),
-    ("TITLE", "", "Title cannot be empty.", None),
-    ("TITLE", 201 * "X", "Title is too long.", None),
-    ("CONTENT", "", "Content cannot be empty.", None),
-    ("CONTENT", 2001 * "X", "Content is too long.", None),
-    ("NICK", "", "Nick cannot be empty.", None),
-    ("NICK", 51 * "X", "Nick is too long.", None),
+    ("title", "", "Title cannot be empty.", None),
+    ("title", 201 * "X", "Title is too long.", None),
+    ("content", "", "Content cannot be empty.", None),
+    ("content", 2001 * "X", "Content is too long.", None),
+    ("nick", "", "Nick cannot be empty.", None),
+    ("nick", 51 * "X", "Nick is too long.", None),
 ]
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "replace_what, replace_with, expected_error_msg, expected_log",
+    "attr, value, expected_error_msg, expected_log",
     test_data,
     ids=[
         "wrong_post_id",
@@ -339,45 +339,68 @@ test_data: list[tuple[str, str, str, str | None]] = [
 )
 def test_add_comment_with_graphql_error(
     create_random_posts,
-    replace_what,
-    replace_with,
+    attr,
+    value,
     expected_error_msg,
     expected_log,
     caplog,
+    monkeypatch,
 ):
+    # we need to mock FLUTTER frontend keys
+    api_key = "fake_api_key"
+    api_secret = "fake_api_secret"
+    monkeypatch.setattr(settings, "FLUTTER_API_KEY", api_key)
+    monkeypatch.setattr(settings, "FLUTTER_API_SECRET", api_secret)
+
+    @dataclass
+    class FakeComment:
+        post_id = 1
+        title = "TITLE"
+        content = "CONTENT"
+        nick = "NICK"
+        timestamp = str(int(datetime.now().timestamp()))
+
+    fc = FakeComment()
+    setattr(fc, attr, value)
+    signature = get_signature(
+        api_secret, fc.post_id, fc.title, fc.content, fc.nick, fc.timestamp
+    )
+
     client = Client(schema)
-    mutation = """
-    mutation CreateComment {
+    mutation = f"""
+    mutation CreateComment {{
         createComment(
-            postId: 1,
-            title: "TITLE",
-            content: "CONTENT",
-            nick: "NICK"
-        ) {
+            postId: {fc.post_id},
+            title: "{fc.title}",
+            content: "{fc.content}",
+            nick: "{fc.nick}",
+            apiKey: "{api_key}",
+            timestamp: "{fc.timestamp}",
+            signature: "{signature}"
+        ) {{
             success
             message
-            comment {
+            comment {{
             id
             title
             content
             nick
             pubTime
-            post {
+            post {{
                 id
                 titleCze
-            }
-            }
-        }
-    }
+            }}
+            }}
+        }}
+    }}
     """
-    tested_mutation = mutation.replace(replace_what, replace_with)
 
     if expected_log is not None:
         with caplog.at_level(logging.ERROR, logger="jiri_one"):
-            response = client.execute(tested_mutation)
+            response = client.execute(mutation)
             assert expected_log in caplog.text
     else:
-        response = client.execute(tested_mutation)
+        response = client.execute(mutation)
 
     assert response is not None and "errors" in response
     assert response["errors"][0]["message"] == expected_error_msg

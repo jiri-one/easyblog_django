@@ -42,7 +42,7 @@ def check_comment_rate_limit(ip_address: str) -> None:
     cache_key = f"comment_rate_{ip_address}"
     requests = cache.get(cache_key, 0)
 
-    if requests >= 5:  # max 5 comments per hour
+    if requests >= 12:  # max 12 comments per hour
         logger.warning(f"Comment rate limit exceeded for IP {ip_address}")
         raise GraphQLError("Too many comments. Please try again in an hour.")
 
@@ -215,7 +215,7 @@ class CreateComment(graphene.Mutation):
             logger.warning(f"Invalid signature from IP {get_client_ip(info)}")
             raise GraphQLError("Invalid request signature.")
 
-        # Rate limiting per IP (stále užitečné)
+        # Rate limiting per IP
         check_comment_rate_limit(get_client_ip(info))
 
         # Validate inputs
