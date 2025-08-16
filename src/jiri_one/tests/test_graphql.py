@@ -2,7 +2,7 @@ import json
 import logging
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
@@ -457,6 +457,75 @@ def test_add_comment_with_graphql_api_key_error(
 
     assert response is not None and "errors" in response
     assert response["errors"][0]["message"] == "Unauthorized access."
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "timestamp, expected_error_msg",
+    [
+        ("nonsense", "Invalid timestamp."),
+        (
+            str(int((datetime.now() + timedelta(minutes=6)).timestamp())),
+            "Request expired.",
+        ),
+    ],
+    ids=[
+        "invalid_timestamp",
+        "request_expired",
+    ],
+)
+def test_add_comment_with_graphql_timestamp_error(
+    create_random_posts,
+    timestamp,
+    expected_error_msg,
+    monkeypatch,
+):
+    # we need to mock FLUTTER frontend keys
+    api_key = "fake_api_key"
+    api_secret = "fake_api_secret"
+    monkeypatch.setattr(settings, "FLUTTER_API_KEY", api_key)
+    monkeypatch.setattr(settings, "FLUTTER_API_SECRET", api_secret)
+
+    post_id = 1
+    title = "TITLE"
+    content = "CONTENT"
+    nick = "NICK"
+
+    signature = get_signature(api_secret, post_id, title, content, nick, timestamp)
+
+    client = Client(schema)
+    mutation = f"""
+    mutation CreateComment {{
+        createComment(
+            postId: {post_id},
+            title: "{title}",
+            content: "{content}",
+            nick: "{nick}",
+            apiKey: "{api_key}",
+            timestamp: "{timestamp}",
+            signature: "{signature}"
+        ) {{
+            success
+            message
+            comment {{
+            id
+            title
+            content
+            nick
+            pubTime
+            post {{
+                id
+                titleCze
+            }}
+            }}
+        }}
+    }}
+    """
+
+    response = client.execute(mutation)
+
+    assert response is not None and "errors" in response
+    assert response["errors"][0]["message"] == expected_error_msg
 
 
 @pytest.mark.django_db
