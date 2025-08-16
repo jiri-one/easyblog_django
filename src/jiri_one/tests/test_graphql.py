@@ -337,7 +337,7 @@ test_data: list[tuple[str, str, str, str | None]] = [
         "long_nick",
     ],
 )
-def test_add_comment_with_graphql_error(
+def test_add_comment_with_graphql_content_error(
     create_random_posts,
     attr,
     value,
@@ -404,6 +404,59 @@ def test_add_comment_with_graphql_error(
 
     assert response is not None and "errors" in response
     assert response["errors"][0]["message"] == expected_error_msg
+
+
+@pytest.mark.django_db
+def test_add_comment_with_graphql_api_key_error(
+    create_random_posts,
+    monkeypatch,
+):
+    # we need to mock FLUTTER frontend keys
+    api_key = "wrong_api_key"
+    api_secret = "fake_api_secret"
+    monkeypatch.setattr(settings, "FLUTTER_API_KEY", "another_api_key")
+
+    post_id = 1
+    title = "TITLE"
+    content = "CONTENT"
+    nick = "NICK"
+    timestamp = str(int(datetime.now().timestamp()))
+
+    signature = get_signature(api_secret, post_id, title, content, nick, timestamp)
+
+    client = Client(schema)
+    mutation = f"""
+    mutation CreateComment {{
+        createComment(
+            postId: {post_id},
+            title: "{title}",
+            content: "{content}",
+            nick: "{nick}",
+            apiKey: "{api_key}",
+            timestamp: "{timestamp}",
+            signature: "{signature}"
+        ) {{
+            success
+            message
+            comment {{
+            id
+            title
+            content
+            nick
+            pubTime
+            post {{
+                id
+                titleCze
+            }}
+            }}
+        }}
+    }}
+    """
+
+    response = client.execute(mutation)
+
+    assert response is not None and "errors" in response
+    assert response["errors"][0]["message"] == "Unauthorized access."
 
 
 @pytest.mark.django_db
