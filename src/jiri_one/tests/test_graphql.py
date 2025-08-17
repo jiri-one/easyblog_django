@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from attr import dataclass
 from django.conf import settings
+from django.core.cache import cache
 from django.db.models import Count, QuerySet
 from graphene.test import Client
 
@@ -34,6 +35,17 @@ def create_random_comment(post: Post) -> Comment:
         nick="".join(random.choices(string.ascii_letters + string.digits, k=10)),
         content="".join(random.choices(string.ascii_letters + string.digits, k=10)),
     )
+
+
+# PyTest fixtures
+
+
+@pytest.fixture(autouse=True)
+def clear_cache():
+    """Clear cache before each test"""
+    cache.clear()
+    yield
+    cache.clear()  # clear after test too
 
 
 @pytest.fixture
@@ -526,6 +538,80 @@ def test_add_comment_with_graphql_timestamp_error(
 
     assert response is not None and "errors" in response
     assert response["errors"][0]["message"] == expected_error_msg
+
+
+@pytest.mark.django_db
+def test_add_comment_with_graphql_many_comments_error(
+    create_random_posts,
+    caplog,
+    monkeypatch,
+):
+    # we need to mock FLUTTER frontend keys
+    api_key = "fake_api_key"
+    api_secret = "fake_api_secret"
+    monkeypatch.setattr(settings, "FLUTTER_API_KEY", api_key)
+    monkeypatch.setattr(settings, "FLUTTER_API_SECRET", api_secret)
+
+    posts, _ = create_random_posts
+    first_post = posts.last()  # first like with id 1, like the oldest
+    comment_count = first_post.comments_count
+
+    for i in range(1, 14):
+        post_id = first_post.id
+        title = "TITLE" + str(i)
+        content = "CONTENT"
+        nick = "NICK"
+        timestamp = str(int(datetime.now().timestamp()))
+        signature = get_signature(api_secret, post_id, title, content, nick, timestamp)
+
+        client = Client(schema)
+        mutation = f"""
+        mutation CreateComment {{
+            createComment(
+                postId: {post_id},
+                title: "{title}",
+                content: "{content}",
+                nick: "{nick}",
+                apiKey: "{api_key}",
+                timestamp: "{timestamp}",
+                signature: "{signature}"
+            ) {{
+                success
+                message
+                comment {{
+                id
+                title
+                content
+                nick
+                pubTime
+                post {{
+                    id
+                    titleCze
+                }}
+                }}
+            }}
+        }}
+        """
+        with caplog.at_level(logging.INFO, logger="jiri_one"):
+            response = client.execute(mutation)
+
+            if i > 12:
+                assert response is not None and "errors" in response
+                assert (
+                    response["errors"][0]["message"]
+                    == "Too many comments. Please try again in an hour."
+                )
+                assert "Comment rate limit exceeded for IP test_client" in caplog.text
+            if i <= 12:
+                assert response is not None and "data" in response
+                assert response["data"]["createComment"]["success"]
+                assert (
+                    comment_count + i == Comment.objects.filter(post=first_post).count()
+                )
+                assert (
+                    f"Comment created successfully for Post ID {post_id} by {nick}."
+                    in caplog.text
+                )
 
 
 @pytest.mark.django_db
