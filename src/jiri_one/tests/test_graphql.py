@@ -37,6 +37,44 @@ def create_random_comment(post: Post) -> Comment:
     )
 
 
+def create_comment_mutation(
+    post_id=1,
+    title="TITLE",
+    content="CONTENT",
+    nick="NICK",
+    api_key=None,
+    timestamp=None,
+    signature=None,
+):
+    return f"""
+    mutation CreateComment {{
+        createComment(
+            postId: {post_id},
+            title: "{title}",
+            content: "{content}",
+            nick: "{nick}",
+            apiKey: "{api_key}",
+            timestamp: "{timestamp}",
+            signature: "{signature}"
+        ) {{
+            success
+            message
+            comment {{
+                id
+                title
+                content
+                nick
+                pubTime
+                post {{
+                    id
+                    titleCze
+                }}
+            }}
+        }}
+    }}
+    """
+
+
 # PyTest fixtures
 
 
@@ -252,34 +290,15 @@ def test_add_comment_with_graphql(create_random_posts, caplog, monkeypatch):
     signature = get_signature(api_secret, post_id, title, content, nick, timestamp)
 
     client = Client(schema)
-    mutation = f"""
-    mutation CreateComment {{
-        createComment(
-            postId: {post_id},
-            title: "{title}",
-            content: "{content}",
-            nick: "{nick}",
-            apiKey: "{api_key}",
-            timestamp: "{timestamp}",
-            signature: "{signature}"
-        ) {{
-            success
-            message
-            comment {{
-                id
-                title
-                content
-                nick
-                pubTime
-                post {{
-                    id
-                    titleCze
-                }}
-            }}
-        }}
-    }}
-    """
-
+    mutation = create_comment_mutation(
+        post_id=post_id,
+        title=title,
+        content=content,
+        nick=nick,
+        timestamp=timestamp,
+        api_key=api_key,
+        signature=signature,
+    )
     with caplog.at_level(logging.INFO, logger="jiri_one"):
         response = client.execute(mutation)
         assert (
@@ -379,33 +398,15 @@ def test_add_comment_with_graphql_content_error(
     )
 
     client = Client(schema)
-    mutation = f"""
-    mutation CreateComment {{
-        createComment(
-            postId: {fc.post_id},
-            title: "{fc.title}",
-            content: "{fc.content}",
-            nick: "{fc.nick}",
-            apiKey: "{api_key}",
-            timestamp: "{fc.timestamp}",
-            signature: "{signature}"
-        ) {{
-            success
-            message
-            comment {{
-            id
-            title
-            content
-            nick
-            pubTime
-            post {{
-                id
-                titleCze
-            }}
-            }}
-        }}
-    }}
-    """
+    mutation = create_comment_mutation(
+        post_id=fc.post_id,
+        title=fc.title,
+        content=fc.content,
+        nick=fc.nick,
+        timestamp=fc.timestamp,
+        api_key=api_key,
+        signature=signature,
+    )
 
     if expected_log is not None:
         with caplog.at_level(logging.ERROR, logger="jiri_one"):
@@ -437,33 +438,15 @@ def test_add_comment_with_graphql_api_key_error(
     signature = get_signature(api_secret, post_id, title, content, nick, timestamp)
 
     client = Client(schema)
-    mutation = f"""
-    mutation CreateComment {{
-        createComment(
-            postId: {post_id},
-            title: "{title}",
-            content: "{content}",
-            nick: "{nick}",
-            apiKey: "{api_key}",
-            timestamp: "{timestamp}",
-            signature: "{signature}"
-        ) {{
-            success
-            message
-            comment {{
-            id
-            title
-            content
-            nick
-            pubTime
-            post {{
-                id
-                titleCze
-            }}
-            }}
-        }}
-    }}
-    """
+    mutation = create_comment_mutation(
+        post_id=post_id,
+        title=title,
+        content=content,
+        nick=nick,
+        timestamp=timestamp,
+        api_key=api_key,
+        signature=signature,
+    )
 
     response = client.execute(mutation)
 
@@ -506,33 +489,15 @@ def test_add_comment_with_graphql_timestamp_error(
     signature = get_signature(api_secret, post_id, title, content, nick, timestamp)
 
     client = Client(schema)
-    mutation = f"""
-    mutation CreateComment {{
-        createComment(
-            postId: {post_id},
-            title: "{title}",
-            content: "{content}",
-            nick: "{nick}",
-            apiKey: "{api_key}",
-            timestamp: "{timestamp}",
-            signature: "{signature}"
-        ) {{
-            success
-            message
-            comment {{
-            id
-            title
-            content
-            nick
-            pubTime
-            post {{
-                id
-                titleCze
-            }}
-            }}
-        }}
-    }}
-    """
+    mutation = create_comment_mutation(
+        post_id=post_id,
+        title=title,
+        content=content,
+        nick=nick,
+        timestamp=timestamp,
+        api_key=api_key,
+        signature=signature,
+    )
 
     response = client.execute(mutation)
 
@@ -565,33 +530,15 @@ def test_add_comment_with_graphql_many_comments_error(
         signature = get_signature(api_secret, post_id, title, content, nick, timestamp)
 
         client = Client(schema)
-        mutation = f"""
-        mutation CreateComment {{
-            createComment(
-                postId: {post_id},
-                title: "{title}",
-                content: "{content}",
-                nick: "{nick}",
-                apiKey: "{api_key}",
-                timestamp: "{timestamp}",
-                signature: "{signature}"
-            ) {{
-                success
-                message
-                comment {{
-                id
-                title
-                content
-                nick
-                pubTime
-                post {{
-                    id
-                    titleCze
-                }}
-                }}
-            }}
-        }}
-        """
+        mutation = create_comment_mutation(
+            post_id=post_id,
+            title=title,
+            content=content,
+            nick=nick,
+            timestamp=timestamp,
+            api_key=api_key,
+            signature=signature,
+        )
         with caplog.at_level(logging.INFO, logger="jiri_one"):
             response = client.execute(mutation)
 
