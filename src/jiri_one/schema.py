@@ -40,9 +40,9 @@ def get_client_ip(info) -> str:
 def check_comment_rate_limit(ip_address: str) -> None:
     """Check if IP has exceeded comment creation rate limit"""
     cache_key = f"comment_rate_{ip_address}"
-    requests = cache.get(cache_key, 0)
+    requests = cache.get(cache_key, 1)
 
-    if requests >= 12:  # max 12 comments per hour
+    if requests > 12:  # max 12 comments per hour
         logger.warning(f"Comment rate limit exceeded for IP {ip_address}")
         raise GraphQLError("Too many comments. Please try again in an hour.")
 
