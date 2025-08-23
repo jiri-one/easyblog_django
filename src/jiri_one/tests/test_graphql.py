@@ -92,6 +92,18 @@ class CommentMutationData:
 
 
 # PyTest fixtures
+
+
+# PyTest fixtures
+@pytest.fixture
+def cmd(monkeypatch):
+    cmd = CommentMutationData()
+    # we need to mock FLUTTER frontend keys
+    monkeypatch.setattr(settings, "FLUTTER_API_KEY", cmd.api_key)
+    monkeypatch.setattr(settings, "FLUTTER_API_SECRET", cmd.api_secret)
+    return cmd
+
+
 @pytest.fixture
 def client_query(client):
     def func(*args, **kwargs):
@@ -343,12 +355,11 @@ def test_all_tags_graphql_query(client_query, create_random_tags):
 
 @pytest.mark.django_db
 def test_add_comment_with_graphql(
-    client_query, create_random_posts, caplog, monkeypatch
+    cmd,  # CommentMutationData instance and api_key and api_secret env mock
+    client_query,
+    create_random_posts,
+    caplog,
 ):
-    cmd = CommentMutationData()
-    # we need to mock FLUTTER frontend keys
-    monkeypatch.setattr(settings, "FLUTTER_API_KEY", cmd.api_key)
-    monkeypatch.setattr(settings, "FLUTTER_API_SECRET", cmd.api_secret)
     # Use the first post from the fixture
     posts, _ = create_random_posts
     first_post = posts.last()  # first like with id 1, like the oldest
@@ -440,6 +451,7 @@ test_data: list[tuple[str, Any, str, str | None]] = [
     ],
 )
 def test_add_comment_with_graphql_content_error(
+    cmd,  # CommentMutationData instance and api_key and api_secret env mock
     client_query,
     create_random_posts,
     attr,
@@ -447,14 +459,7 @@ def test_add_comment_with_graphql_content_error(
     expected_error_msg,
     expected_log,
     caplog,
-    monkeypatch,
 ):
-    cmd = CommentMutationData()
-
-    # we need to mock FLUTTER frontend keys
-    monkeypatch.setattr(settings, "FLUTTER_API_KEY", cmd.api_key)
-    monkeypatch.setattr(settings, "FLUTTER_API_SECRET", cmd.api_secret)
-
     # there is the part, where PyTest use our parameters for test variants
     setattr(cmd, attr, value)
     cmd.refresh_signature()  # we need to build new signature after change of atribute
@@ -478,17 +483,11 @@ def test_add_comment_with_graphql_content_error(
 
 @pytest.mark.django_db
 def test_add_comment_with_graphql_many_comments_error(
+    cmd,  # CommentMutationData instance and api_key and api_secret env mock
     client_query,
     create_random_posts,
     caplog,
-    monkeypatch,
 ):
-    cmd = CommentMutationData()
-    # we need to mock FLUTTER frontend keys
-
-    monkeypatch.setattr(settings, "FLUTTER_API_KEY", cmd.api_key)
-    monkeypatch.setattr(settings, "FLUTTER_API_SECRET", cmd.api_secret)
-
     posts, _ = create_random_posts
     first_post = posts.last()  # first like with id 1, like the oldest
     comment_count = first_post.comments_count
