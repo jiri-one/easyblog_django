@@ -23,18 +23,15 @@ get_offset = lambda page: (page - 1) * POSTS_ON_PAGE
 
 def get_client_ip(info) -> str:
     """Extract client IP from GraphQL request info"""
-    try:
-        request = info.context
-        if request and hasattr(request, "META"):
-            x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-            if x_forwarded_for:
-                return x_forwarded_for.split(",")[0].strip()
-            return request.META.get("REMOTE_ADDR", "unknown")
-    except (AttributeError, TypeError):
-        pass
+    request = info.context
+    if request and hasattr(request, "META"):
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        if x_forwarded_for:
+            return x_forwarded_for.split(",")[0].strip()
+        return request.META.get("REMOTE_ADDR", "unknown")
 
-    # Fallback for test environment
-    return "test_client"
+    logger.error("We were not able to determine IP adres")
+    return "NOT_AVAILABLE"
 
 
 def check_comment_rate_limit(ip_address: str) -> None:
@@ -61,7 +58,7 @@ def get_expected_signature(
     # Verify signature (prevent tampering)
     return hmac.new(
         api_secret.encode(),
-        f"{post_id}{title}{content}{nick}{timestamp}".encode(),
+        f"{post_id!r}{title!r}{content!r}{nick!r}{timestamp!r}".encode(),
         hashlib.sha256,
     ).hexdigest()
 
@@ -108,14 +105,22 @@ class Query(graphene.ObjectType):
 
     def resolve_post_by_id(root, info, id):
         try:
-            return Post.objects.get(id=id)
+            return (
+                Post.objects.prefetch_related("tags")
+                .select_related("author")
+                .get(id=id)
+            )
         except Post.DoesNotExist:
             logger.error(f"Post with ID {id} does not exist.")
             return None
 
     def resolve_post_by_url(root, info, url):
         try:
-            return Post.objects.get(url_cze=url)
+            return (
+                Post.objects.prefetch_related("tags")
+                .select_related("author")
+                .get(url_cze=url)
+            )
         except Post.DoesNotExist:
             logger.error(f"Post with URL {url} does not exist.")
             return None
@@ -126,7 +131,8 @@ class Query(graphene.ObjectType):
             page = 1
         offset = get_offset(page)
         return (
-            Post.objects.select_related("author")
+            Post.objects.prefetch_related("tags")
+            .select_related("author")
             .annotate(comments_count=Count("comments"))
             .order_by("-id")
             .all()[offset : offset + POSTS_ON_PAGE]
@@ -148,7 +154,8 @@ class Query(graphene.ObjectType):
         # Filter posts by the fetched tags
         offset = get_offset(page)
         return (
-            Post.objects.select_related("author")
+            Post.objects.prefetch_related("tags")
+            .select_related("author")
             .annotate(comments_count=Count("comments"))
             .order_by("-id")
             .filter(tags__in=tags)
@@ -161,7 +168,8 @@ class Query(graphene.ObjectType):
             page = 1
         offset = get_offset(page)
         return (
-            Post.objects.select_related("author")
+            Post.objects.prefetch_related("tags")
+            .select_related("author")
             .annotate(comments_count=Count("comments"))
             .order_by("-id")
             .filter(Q(content_cze__icontains=text) | Q(title_cze__icontains=text))
