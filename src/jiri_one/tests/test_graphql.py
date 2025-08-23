@@ -21,7 +21,7 @@ from jiri_one.schema import get_expected_signature as get_signature
 def get_random_part_of_string(string: str) -> str:
     """This function will return random part of string at minimum 3 chars length."""
     maximum_index = len(string)
-    first = random.randrange(0, round(maximum_index / 2))
+    first = random.randrange(round(maximum_index / 2))
     second = random.randrange(first + 3, maximum_index)
     return string[first:second]
 
