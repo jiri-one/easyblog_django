@@ -1,12 +1,14 @@
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Max
 from django.utils import timezone
 from django.utils.text import slugify
 from prose.fields import RichTextField
 
 
 def get_next_post_id():
-    return Post.objects.count() + 1
+    # after the highest one, not the count: posts can be deleted
+    return (Post.objects.aggregate(Max("id"))["id__max"] or 0) + 1
 
 
 class Post(models.Model):
