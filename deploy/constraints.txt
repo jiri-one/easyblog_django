@@ -1,2 +1,0 @@
-# Keep production on the Django line the blog was developed and tested with.
-django>=5.2,<5.3

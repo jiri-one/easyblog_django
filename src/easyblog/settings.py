@@ -88,9 +88,6 @@ if SYSTEM_ENV == "PRODUCTION":  # settings for production server
     # TLS ends at the reverse proxy, which sets X-Forwarded-Proto
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     STATIC_ROOT = os.getenv("STATIC_ROOT", "/srv/http/virtual/jiri.one/static")
-    STATICFILES_DIRS = [
-        "/srv/http/virtual/jiri.one/.venv/lib/python3.10/site-packages/django/contrib/admin/static",
-    ]
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",

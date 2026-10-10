@@ -5,14 +5,15 @@ FROM docker.io/library/python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_ROOT_USER_ACTION=ignore
 
 WORKDIR /code
 
 # dependencies first (from pyproject.toml), so code changes do not reinstall them
-COPY pyproject.toml deploy/constraints.txt ./
+COPY pyproject.toml ./
 RUN python -c "import tomllib; print('\n'.join(tomllib.load(open('pyproject.toml', 'rb'))['project']['dependencies']))" > requirements.txt \
-    && pip install -r requirements.txt -c constraints.txt
+    && pip install -r requirements.txt
 
 COPY src ./src
 COPY deploy ./deploy
