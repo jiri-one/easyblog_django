@@ -354,6 +354,55 @@ def test_all_tags_graphql_query(client_query, create_random_tags):
 
 
 @pytest.mark.django_db
+def test_comments_by_post_id_graphql_query(client_query, create_random_posts):
+    posts, _ = create_random_posts
+    post = random.choice(posts)
+    [create_random_comment(post) for _ in range(3)]
+    # comment of another post must not be returned
+    other_post = create_post(title_cze="Other post", content_cze="Other content.")
+    create_random_comment(other_post)
+    # all comments of the post (also from the fixture), in the order they were written
+    comments = Comment.objects.filter(post=post).order_by("id")
+    response_content = client_query(
+        """
+        query commentsByPostId($id: Int!) {
+            commentsByPostId(id: $id) {
+                id
+                title
+                content
+                nick
+            }
+        }
+        """,
+        variables={"id": post.id},
+    ).json()
+
+    assert response_content is not None and "data" in response_content
+    graphql_comments = response_content["data"]["commentsByPostId"]
+    assert graphql_comments == [
+        dict(id=str(c.pk), title=c.title, content=c.content, nick=c.nick)
+        for c in comments
+    ]
+
+
+@pytest.mark.django_db
+def test_comments_by_post_id_graphql_query_missing_post(client_query, caplog):
+    response_content = client_query(
+        """
+        query commentsByPostId($id: Int!) {
+            commentsByPostId(id: $id) {
+                id
+            }
+        }
+        """,
+        variables={"id": 9999},
+    ).json()
+
+    assert response_content == {"data": {"commentsByPostId": None}}
+    assert "Post with ID 9999 does not exist." in caplog.text
+
+
+@pytest.mark.django_db
 def test_add_comment_with_graphql(
     cmd,  # CommentMutationData instance and api_key and api_secret env mock
     client_query,

@@ -101,7 +101,7 @@ class Query(graphene.ObjectType):
         PostType, text=graphene.String(required=True), page=graphene.Int(required=False)
     )
     all_tags = graphene.List(TagType)
-    # TODO: think about pagination (it can be handled in frontend, but to save DB connections it can be handled here too)
+    comments_by_post_id = graphene.List(CommentType, id=graphene.Int(required=True))
 
     def resolve_post_by_id(root, info, id):
         try:
@@ -179,7 +179,13 @@ class Query(graphene.ObjectType):
     def resolve_all_tags(root, info):
         return Tag.objects.order_by("order").all()
 
-    # TODO: implement search in posts!
+    def resolve_comments_by_post_id(root, info, id):
+        try:
+            post = Post.objects.get(id=id)
+        except Post.DoesNotExist:
+            logger.error(f"Post with ID {id} does not exist.")
+            return None
+        return Comment.objects.filter(post=post).order_by("pub_time", "id")
 
 
 class CreateComment(graphene.Mutation):
