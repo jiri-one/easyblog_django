@@ -5,20 +5,23 @@ from django.utils.text import slugify
 from prose.fields import RichTextField
 
 
+def get_next_post_id():
+    return Post.objects.count() + 1
+
+
 class Post(models.Model):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.html_tags = ""
 
-    @staticmethod
-    def get_next_id():
-        return Post.objects.count() + 1
+    # the migrations reference the id default as Post.get_next_id
+    get_next_id = staticmethod(get_next_post_id)
 
     id = models.IntegerField(
         primary_key=True,
         validators=[MinValueValidator(1)],
         editable=False,
-        default=get_next_id,
+        default=get_next_post_id,
     )
     title_cze = models.CharField("Post title CZE", unique=True, max_length=100)
     title_eng = models.CharField(
