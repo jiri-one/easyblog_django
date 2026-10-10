@@ -88,6 +88,14 @@ if SYSTEM_ENV == "PRODUCTION":  # settings for production server
     # TLS ends at the reverse proxy, which sets X-Forwarded-Proto
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     STATIC_ROOT = os.getenv("STATIC_ROOT", "/srv/http/virtual/jiri.one/static")
+    # names with a content hash: a changed file gets a new URL, so browsers can keep static
+    # files for good and never use an outdated stylesheet
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+        },
+    }
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
