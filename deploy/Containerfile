@@ -1,0 +1,32 @@
+# Production image of jiri.one (rootless Podman + Quadlet on the M1S).
+# Build: podman build -f deploy/Containerfile .
+FROM docker.io/library/python:3.13-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /code
+
+# dependencies first (from pyproject.toml), so code changes do not reinstall them
+COPY pyproject.toml deploy/constraints.txt ./
+RUN python -c "import tomllib; print('\n'.join(tomllib.load(open('pyproject.toml', 'rb'))['project']['dependencies']))" > requirements.txt \
+    && pip install -r requirements.txt -c constraints.txt
+
+COPY src ./src
+COPY deploy ./deploy
+
+# unprivileged app user; errors.log is the LOGGING file handler (relative to the working dir)
+RUN useradd --uid 1000 --home-dir /code --no-create-home --shell /usr/sbin/nologin app \
+    && mkdir -p /data/media /data/static \
+    && touch src/errors.log \
+    && chown app:app /data/media /data/static src/errors.log
+
+USER app
+WORKDIR /code/src
+ENV SYSTEM_ENV=PRODUCTION \
+    PGSERVICEFILE=/code/deploy/pg_service.conf
+EXPOSE 8000
+ENTRYPOINT ["/code/deploy/entrypoint.sh"]
+CMD ["daphne", "--bind", "0.0.0.0", "--port", "8000", "--proxy-headers", "easyblog.asgi:application"]

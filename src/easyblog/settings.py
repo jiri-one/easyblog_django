@@ -85,7 +85,9 @@ if SYSTEM_ENV == "PRODUCTION":  # settings for production server
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_PRELOAD = True
-    STATIC_ROOT = "/srv/http/virtual/jiri.one/static"
+    # TLS ends at the reverse proxy, which sets X-Forwarded-Proto
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    STATIC_ROOT = os.getenv("STATIC_ROOT", "/srv/http/virtual/jiri.one/static")
     STATICFILES_DIRS = [
         "/srv/http/virtual/jiri.one/.venv/lib/python3.10/site-packages/django/contrib/admin/static",
     ]
