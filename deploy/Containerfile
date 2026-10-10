@@ -1,33 +1,46 @@
 # Production image of jiri.one (rootless Podman + Quadlet on the M1S).
 # Build: podman build -f deploy/Containerfile .
-FROM docker.io/library/python:3.13-slim
+#
+# Runtime: Google's distroless Python (no shell, no package manager, user nonroot = 65532).
+# Its Python is Debian's, so the virtualenv is built with the same Debian release's python3.
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_ROOT_USER_ACTION=ignore
+FROM docker.io/library/debian:13-slim AS build
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN python3 -m venv /venv
 
 WORKDIR /code
-
-# dependencies first (from pyproject.toml), so code changes do not reinstall them
+# dependencies first (from pyproject.toml), so code changes do not reinstall them;
+# pip itself is not needed at runtime
 COPY pyproject.toml ./
-RUN python -c "import tomllib; print('\n'.join(tomllib.load(open('pyproject.toml', 'rb'))['project']['dependencies']))" > requirements.txt \
-    && pip install -r requirements.txt
+RUN /venv/bin/python -c "import tomllib; print('\n'.join(tomllib.load(open('pyproject.toml', 'rb'))['project']['dependencies']))" > requirements.txt \
+    && /venv/bin/pip install -r requirements.txt \
+    && /venv/bin/pip uninstall -y pip
 
 COPY src ./src
 COPY deploy ./deploy
-
-# unprivileged app user; errors.log is the LOGGING file handler (relative to the working dir)
-RUN useradd --uid 1000 --home-dir /code --no-create-home --shell /usr/sbin/nologin app \
-    && mkdir -p /data/media /data/static \
+# bytecode now, the runtime cannot write it; errors.log is the LOGGING file handler
+RUN /venv/bin/python -m compileall -q src deploy \
     && touch src/errors.log \
-    && chown app:app /data/media /data/static src/errors.log
+    && mkdir -p /data/media /data/static
 
-USER app
+
+FROM gcr.io/distroless/python3-debian13:nonroot
+COPY --from=build /venv /venv
+COPY --from=build /code /code
+COPY --from=build --chown=65532:65532 /code/src/errors.log /code/src/errors.log
+COPY --from=build --chown=65532:65532 /data /data
+
 WORKDIR /code/src
-ENV SYSTEM_ENV=PRODUCTION \
+ENV PATH=/venv/bin:/usr/bin:/bin \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    SYSTEM_ENV=PRODUCTION \
+    DJANGO_SETTINGS_MODULE=easyblog.settings \
     PGSERVICEFILE=/code/deploy/pg_service.conf
 EXPOSE 8000
-ENTRYPOINT ["/code/deploy/entrypoint.sh"]
+ENTRYPOINT ["/venv/bin/python", "/code/deploy/entrypoint.py"]
 CMD ["daphne", "--bind", "0.0.0.0", "--port", "8000", "--proxy-headers", "easyblog.asgi:application"]
