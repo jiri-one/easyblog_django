@@ -36,16 +36,10 @@ async def get_post_html_tags(post_tags: QuerySet[Tag]):
 
 
 async def get_all_html_tags():
-    nr_of_tags: int = await Tag.objects.acount()
-    html_tags: str = ""
-    index = 0
-    async for tag in Tag.objects.all():
-        if index == nr_of_tags - 1:
-            html_tags += f'<a href="/tag/{tag.url_cze}">{tag.name_cze}</a>'
-        else:
-            html_tags += f'<a style="border-bottom: 1px solid #3c67be;" href="/tag/{tag.url_cze}">{tag.name_cze}</a>'
-        index += 1
-    return html_tags
+    # the lines between the tags come from the stylesheet (theme colours)
+    return "".join(
+        [f'<a href="/tag/{tag.url_cze}">{tag.name_cze}</a>' async for tag in Tag.objects.all()]
+    )
 
 
 class PostView(View):
