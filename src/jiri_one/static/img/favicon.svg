@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+<!-- the brackets of the title ·:[ Jiřího blog ]:· around a j, which has a háček instead of the
+     dot; the straight lines lie on whole pixels at 16 and 32 px -->
+<rect width="32" height="32" rx="7" fill="#3c67be"/>
+<g fill="none" stroke="#fff">
+<path d="M10 7H7v18h3M22 7h3v18h-3" stroke-width="2"/>
+<path d="M17.5 13v7.5c0 2.6-1.6 4-4.5 4" stroke-width="3"/>
+<path d="M15 7.5l2.5 2.5 2.5-2.5" stroke-width="2"/>
+</g>
+</svg>
