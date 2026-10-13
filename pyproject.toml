@@ -22,7 +22,9 @@ dependencies = [
   "httpx",
   "daphne",
   "graphene-django>=3.2.3",
-  "markdown"
+  "markdown",
+  "nh3>=0.3",
+  "pillow>=12"
 ]
 
 [project.optional-dependencies]

@@ -210,6 +210,37 @@ a:hover { color: var(--accent); }
   height: auto;
 }
 
+/* pictures from the editor (Trix): centred like in the editor, and several dropped in at once
+   share a row the same way (three, or two of two and four) */
+#middle figure.attachment {
+  margin: 10px 0;
+  text-align: center;
+}
+
+#middle .attachment-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+
+#middle .attachment-gallery > .attachment {
+  flex: 1 0 33%;
+  max-width: 33%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 5px;
+}
+
+#middle .attachment-gallery--2 > .attachment,
+#middle .attachment-gallery--4 > .attachment {
+  flex-basis: 50%;
+  max-width: 50%;
+}
+
+#middle .attachment__caption {
+  font-size: 0.8em;
+}
+
 @media (max-width: 720px) {
 .nav-other {
   display: none;
@@ -267,6 +298,13 @@ header::after {
   display: block;
   height: 26px;
   margin: 0;
+}
+
+/* pictures of a row one under another */
+#middle .attachment-gallery > .attachment {
+  flex-basis: 100%;
+  max-width: 100%;
+  padding: 0;
 }
 }
 
