@@ -179,8 +179,16 @@ a:hover { color: var(--accent); }
   border-bottom: 1px solid var(--line);
 }
 
+/* the flags grow and shrink with the title; 0.6em of the 44px title is their own 20pt */
 .img_flag {
-    margin-left: 5px
+  height: 0.6em;
+  width: auto;
+  margin-left: 5px;
+}
+
+/* the flags and the title never wrap apart */
+.title {
+  white-space: nowrap;
 }
 
 .other-links {
@@ -195,6 +203,13 @@ a:hover { color: var(--accent); }
   text-align: right;
 }
 
+/* pictures and videos in posts shrink with a narrow column instead of sticking out of
+   the page, and keep their proportions */
+#middle img, #middle video {
+  max-width: 100%;
+  height: auto;
+}
+
 @media (max-width: 720px) {
 .nav-other {
   display: none;
@@ -206,8 +221,52 @@ body {
   border: 2px solid var(--line);
 }
 
+/* the title with the colour switch next to it, the flags centred below them: with the
+   flags beside the title and the switch in the corner it did not fit on a phone */
 header {
-font-size: 7vw;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  column-gap: 0.25em;
+  padding: 10px 10px 12px;
+  font-size: 7vw;
+  font-size: min(8vw, 2em);
+}
+
+/* the parts of the title and the flags become items of the header's rows */
+.title {
+  display: contents;
+}
+
+/* "header" wins over the .theme-toggle rules further down */
+header .theme-toggle {
+  position: static;
+  order: 1;
+  margin-left: 10px;
+}
+
+/* ends the first row */
+header::after {
+  content: "";
+  flex-basis: 100%;
+  order: 2;
+}
+
+.title > a:first-child, .title > a:last-child {
+  order: 3;
+  line-height: 0;
+  margin-top: 10px;
+}
+
+.title > a:first-child {
+  margin-right: 10px;
+}
+
+.img_flag {
+  display: block;
+  height: 26px;
+  margin: 0;
 }
 }
 
