@@ -164,6 +164,30 @@ def test_sizes_in_other_units_are_the_authors(media_root):
     assert process_pictures(html) == html
 
 
+def test_sizes_that_are_no_numbers_or_hide_the_picture_are_the_authors(media_root):
+    put_picture("photo.jpg", (2400, 1800))
+    html = (
+        '<p><img src="/files/photo.jpg" width="1..5"/><img src="/files/photo.jpg" style="width: .px"/>'
+        '<img src="/files/photo.jpg" width="0" height="0"/></p>'
+    )
+    assert process_pictures(html) == html
+    # a picture from the editor is sized by the picture itself, whatever its attributes say
+    out = process_pictures(editor_figure("photo.jpg", (2400, 1800)).replace('width="2400"', 'width="1..5"'))
+    assert 'width="480" height="360"' in out
+
+
+def test_missing_preview_is_made_again(media_root):
+    put_picture("photo.jpg", (2400, 1800))
+    html = process_pictures('<p><img src="/files/photo.jpg" width="100"/></p>')
+    (media_root / "nahledy/photo.jpg-200x150.jpg").unlink()
+    assert process_pictures(html) == html
+    assert (media_root / "nahledy/photo.jpg-200x150.jpg").exists()
+    # an old preview, named without the extension, comes back under the new name
+    put_picture("pejsek/p.jpg", (2322, 4128))
+    old = '<a href="/files/pejsek/p.jpg"><img alt="" height="267" src="/files/nahledy/pejsek/p-300x533.jpg" width="150"/></a>'
+    assert 'src="/files/nahledy/pejsek/p.jpg-300x533.jpg"' in process_pictures(old)
+
+
 def test_preview_follows_a_new_size(media_root):
     put_picture("photo.jpg", (2400, 1800))
     small = process_pictures('<p><img src="/files/photo.jpg" width="100"/></p>')

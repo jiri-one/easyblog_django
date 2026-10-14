@@ -119,13 +119,20 @@ def picture_size(path):
         return None
 
 
-def css_px(style, prop):
-    m = re.search(rf"(?:^|;)\s*{prop}\s*:\s*([\d.]+)px", style or "")
-    return float(m.group(1)) if m else None
+# a size in pixels as posts write it: "320", "320px", "1.5px" or ".5px" (not "1..5")
+PX = re.compile(r"\s*(\d+(?:\.\d+)?|\.\d+)\s*(?:px)?\s*", re.I)
 
 
-def attr_px(value):
-    m = re.fullmatch(r"\s*([\d.]+)\s*(px)?\s*", value or "")
+def written_size(img, prop):
+    """The picture's width or height as the post writes it: in its style, else in its
+    attribute; None when it gives none."""
+    css = re.search(rf"(?:^|;)\s*{prop}\s*:\s*([^;]*)", img.attrs.get("style") or "", re.I)
+    return css.group(1) if css else img.attrs.get(prop)
+
+
+def px(value):
+    """The pixels in a written size; None for none, other units and what is no number."""
+    m = PX.fullmatch(value or "")
     return float(m.group(1)) if m else None
 
 
@@ -142,12 +149,11 @@ def height_for(width, size):
 
 def other_units(img):
     """True when the post sizes the picture in something else than px (width="100%",
-    style="width: 20em"): the author's layout, which the picture keeps."""
-    style = img.attrs.get("style") or ""
+    style="width: 20em"), in no number at all or hides it (width="0"): the author's layout,
+    which the picture keeps."""
     for prop in ("width", "height"):
-        css = re.search(rf"(?:^|;)\s*{prop}\s*:\s*([^;]*)", style)
-        value = css.group(1) if css else img.attrs.get(prop)
-        if value is not None and not re.fullmatch(r"\s*[\d.]+\s*(px)?\s*", value):
+        value = written_size(img, prop)
+        if value is not None and not px(value):
             return True
     return False
 
@@ -155,9 +161,7 @@ def other_units(img):
 def shown_size(img, size):
     """(width, height, given): how big the post shows the picture; given is False when the
     size comes from BOX."""
-    style = img.attrs.get("style")
-    w = css_px(style, "width") or attr_px(img.attrs.get("width"))
-    h = css_px(style, "height") or attr_px(img.attrs.get("height"))
+    w, h = (px(written_size(img, prop)) for prop in ("width", "height"))
     if img.from_editor or not (w or h):
         return *fit(size, BOX), False
     if w:
@@ -251,7 +255,7 @@ def process_pictures(html):
         if preview:
             wanted = (DENSITY * w, height_for(DENSITY * w, size))
             m = current and PREVIEW_NAME.fullmatch(current)
-            if m and (int(m.group(2)), int(m.group(3))) == wanted:
+            if m and (int(m.group(2)), int(m.group(3))) == wanted and default_storage.exists(current):
                 preview_path = current  # still the right size, whatever its name
             else:
                 try:
