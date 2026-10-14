@@ -86,7 +86,10 @@ class PictureFinder(HTMLParser):
 
 def media_path(url):
     """The file in MEDIA_ROOT that a URL on the site points to, None for other sites."""
-    parts = urllib.parse.urlsplit(url or "")
+    try:
+        parts = urllib.parse.urlsplit(url or "")
+    except ValueError:  # e.g. "https://[" in a post written by hand
+        return None
     if parts.netloc not in ("", "jiri.one", "www.jiri.one"):
         return None
     path = urllib.parse.unquote(parts.path)
@@ -173,13 +176,23 @@ def make_preview(path, size):
     return name
 
 
+# one attribute of a start tag: its name and, if it has one, its value
+ATTRIBUTE = re.compile(r"""\s+(?P<name>[^\s"'>/=]+)(?:\s*=\s*(?P<value>"[^"]*"|'[^']*'|[^\s>]+))?""")
+
+
 def set_attr(tag, name, value):
-    """The tag with the attribute set (replaced, or added before the end of the tag)."""
+    """The tag with the attribute set (replaced, or added after the last one). The attributes
+    are walked one after another, so text inside a value that looks like an attribute
+    (alt="a src=x onload=...") is never taken for one."""
     value = escape(str(value))
-    pattern = rf"(\s{name}\s*=\s*)(\"[^\"]*\"|'[^']*'|[^\s>]+)"
-    if re.search(pattern, tag, re.IGNORECASE):
-        return re.sub(pattern, lambda m: f'{m.group(1)}"{value}"', tag, count=1, flags=re.IGNORECASE)
-    return re.sub(r"\s*/?>$", lambda m: f' {name}="{value}"{m.group(0)}', tag, count=1)
+    pos = re.match(r"<[^\s/>]+", tag).end()
+    while m := ATTRIBUTE.match(tag, pos):
+        if m.group("name").lower() == name:
+            if m.group("value") is None:  # a name without a value
+                return f'{tag[: m.end("name")]}="{value}"{tag[m.end("name") :]}'
+            return f'{tag[: m.start("value")]}"{value}"{tag[m.end("value") :]}'
+        pos = m.end()
+    return f'{tag[:pos]} {name}="{value}"{tag[pos:]}'
 
 
 # Trix's caption of a picture that got none: the file's name and size
@@ -235,7 +248,8 @@ def process_pictures(html):
 def prepare_upload(name, data):
     """(bytes, extension) to store for a file uploaded in the editor. A photo is turned
     upright, made at most UPLOAD_MAX_SIDE big and loses its EXIF, XMP and IPTC (the GPS
-    position included); other files, and JPEGs without any of that, are kept as they are."""
+    position included); a PNG is saved again without any of that; other files, and JPEGs
+    without metadata, are kept as they are."""
     ext = os.path.splitext(name)[1].lstrip(".").lower()
     if not re.fullmatch(r"[a-z0-9]{1,10}", ext):
         ext = "bin"
@@ -244,9 +258,8 @@ def prepare_upload(name, data):
         im.load()
     except UNUSABLE:
         return data, ext
-    if getattr(im, "n_frames", 1) > 1:
-        return data, ext  # animations as they are
     out = io.BytesIO()
+    # a phone's MPO (a JPEG with more pictures in it) is a photo too: only its first is kept
     if im.format in ("JPEG", "MPO"):
         metadata = im.getexif() or any(key in im.info for key in ("xmp", "photoshop"))
         if not metadata and max(im.size) <= UPLOAD_MAX_SIDE:
@@ -258,7 +271,10 @@ def prepare_upload(name, data):
             im = im.convert("RGB")
         im.save(out, "JPEG", quality=90, optimize=True, progressive=True, icc_profile=icc)
         return out.getvalue(), "jpg"
-    if im.format == "PNG" and im.getexif():
+    if getattr(im, "n_frames", 1) > 1:
+        return data, ext  # animations as they are
+    if im.format == "PNG":
+        # saved again, without its EXIF, XMP and text chunks; no quality is lost in a PNG
         icc = im.info.get("icc_profile")
         ImageOps.exif_transpose(im).save(out, "PNG", optimize=True, icc_profile=icc)
         return out.getvalue(), "png"

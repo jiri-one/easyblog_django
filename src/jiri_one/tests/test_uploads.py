@@ -3,6 +3,7 @@ import io
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
+from PIL.PngImagePlugin import PngInfo
 
 UPLOAD_URL = "/prose/attachment/"
 
@@ -72,6 +73,29 @@ def test_png_is_turned_upright_too(admin_client, media_root):
     with Image.open(io.BytesIO(stored(media_root, response))) as im:
         assert im.size == (50, 100)
         assert not im.getexif()
+
+
+@pytest.mark.django_db
+def test_mpo_photo_loses_its_gps_too(admin_client, media_root):
+    """A multi-picture JPEG (MPO), as some phones take them."""
+    exif = Image.Exif()
+    exif[0x8825] = {1: "N", 2: (50.0, 20.0, 5.0), 3: "E", 4: (12.0, 44.0, 46.0)}
+    out = io.BytesIO()
+    first, second = Image.new("RGB", (400, 300), "teal"), Image.new("RGB", (400, 300), "red")
+    first.save(out, "MPO", save_all=True, append_images=[second], exif=exif)
+    response = post_file(admin_client, "IMG_1234.JPG", out.getvalue(), "image/jpeg")
+    with Image.open(io.BytesIO(stored(media_root, response))) as im:
+        assert not im.getexif().get_ifd(0x8825)
+
+
+@pytest.mark.django_db
+def test_png_loses_xmp_without_exif_too(admin_client, media_root):
+    info = PngInfo()
+    info.add_itxt("XML:com.adobe.xmp", '<x:xmpmeta xmlns:x="adobe:ns:meta/">GPSLatitude 50,20.1N</x:xmpmeta>')
+    out = io.BytesIO()
+    Image.new("RGB", (50, 50), "teal").save(out, "PNG", pnginfo=info)
+    response = post_file(admin_client, "screen.png", out.getvalue(), "image/png")
+    assert b"xmpmeta" not in stored(media_root, response)
 
 
 @pytest.mark.django_db

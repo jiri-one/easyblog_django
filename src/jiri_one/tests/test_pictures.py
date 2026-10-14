@@ -138,6 +138,21 @@ def test_attribute_names_in_capitals(media_root):
     assert out == '<p><a href="/files/big.jpg"><IMG SRC="/files/nahledy/big.jpg-640x480.jpg" WIDTH="320" height="240"></a></p>'
 
 
+def test_attribute_like_text_in_a_value_stays_text(media_root):
+    put_picture("big.jpg", (1600, 1200))
+    html = '<p><img alt="photo src=x onload=alert(1)//" src="/files/big.jpg" width="320"/></p>'
+    out = process_pictures(html)
+    assert 'alt="photo src=x onload=alert(1)//"' in out and out.count("onload") == 1
+    assert 'src="/files/nahledy/big.jpg-640x480.jpg"' in out
+
+
+def test_broken_addresses_do_not_stop_a_save(media_root):
+    assert process_pictures('<img src="https://[" width="100">') == '<img src="https://[" width="100">'
+    data = "{&quot;url&quot;:&quot;https://[&quot;,&quot;width&quot;:300}"
+    out = clean_editor_html(f'<figure data-trix-attachment="{data}"></figure>')
+    assert "https://[" not in out and "&quot;width&quot;:300" in out
+
+
 def test_editor_html_cleaning():
     html = editor_figure("prose/a.jpg", (2400, 1800)) + '<script>alert(1)</script><img src="x.jpg" onerror="alert(2)">'
     out = clean_editor_html(html)

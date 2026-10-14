@@ -37,7 +37,10 @@ ATTACHMENT_ATTRIBUTE_KEYS = {"caption": str, "presentation": str}
 def safe_url(value):
     if not isinstance(value, str):
         return False
-    scheme = urllib.parse.urlsplit(value).scheme
+    try:
+        scheme = urllib.parse.urlsplit(value).scheme
+    except ValueError:  # e.g. "https://[", which is no address at all
+        return False
     return scheme in ("http", "https") if scheme else not value.startswith("//")
 
 
