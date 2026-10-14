@@ -96,7 +96,11 @@ def media_path(url):
     # the posts link /files/ (and the old /soubory/) whatever MEDIA_URL a setup has
     for prefix in (settings.MEDIA_URL, "/files/", OLD_MEDIA_URL):
         if path.startswith(prefix):
-            return path[len(prefix) :]
+            path = path[len(prefix) :]
+            # no file of the site: nothing, or a way out of MEDIA_ROOT ("../")
+            if not path or path.startswith("/") or "\0" in path or ".." in path.split("/"):
+                return None
+            return path
     return None
 
 
@@ -287,37 +291,67 @@ def process_pictures(html):
     return PICTURE_FIGURE.sub(lambda m: DEFAULT_CAPTION.sub("", m.group(0)), html)
 
 
+class PictureRefusedError(Exception):
+    """A picture that cannot be cleaned of its metadata, so it is not stored at all."""
+
+
+# what a JPEG may hold besides the picture to be stored as it is: JFIF, a colour profile
+PLAIN_JPEG_SEGMENTS = {"APP0": b"JFIF\0", "APP2": b"ICC_PROFILE\0", "APP14": b"Adobe"}
+
+
+def plain_jpeg(im, data):
+    """True for a JPEG with nothing but one picture in it: no EXIF, XMP, IPTC or comment, no
+    more pictures (an MPO, or a JPEG appended, as in some motion photos), nothing after it."""
+    return (
+        im.format == "JPEG"
+        and all(
+            marker in PLAIN_JPEG_SEGMENTS and payload.startswith(PLAIN_JPEG_SEGMENTS[marker])
+            for marker, payload in im.applist
+        )
+        and data.count(b"\xff\xd8\xff") == 1
+        and data.endswith(b"\xff\xd9")
+    )
+
+
 def prepare_upload(name, data):
     """(bytes, extension) to store for a file uploaded in the editor. A photo is turned
-    upright, made at most UPLOAD_MAX_SIDE big and loses its EXIF, XMP and IPTC (the GPS
-    position included); a PNG is saved again without any of that; other files, and JPEGs
-    without metadata, are kept as they are."""
+    upright, made at most UPLOAD_MAX_SIDE big and loses its EXIF, XMP, IPTC and comments
+    (the GPS position included); a PNG is saved again without any of that. Other files, and
+    JPEGs with nothing in them but the picture, are kept as they are. A JPEG or PNG that
+    cannot be read, or a picture too big to open safely, raises PictureRefusedError."""
     ext = os.path.splitext(name)[1].lstrip(".").lower()
     if not re.fullmatch(r"[a-z0-9]{1,10}", ext):
         ext = "bin"
+    refused = PictureRefusedError(
+        f"Obrázek {name} se nepodařilo zpracovat (je poškozený, nebo má přes 179 megapixelů), "
+        "proto se nenahrál: zůstala by v něm metadata, třeba poloha z GPS."
+    )
     try:
         im = Image.open(io.BytesIO(data))
-        im.load()
-    except UNUSABLE:
-        return data, ext
+    except Image.UnidentifiedImageError:
+        return data, ext  # no picture Pillow knows (a PDF, a video...): kept as it is
+    except UNUSABLE as error:  # Image.DecompressionBombError: too many pixels
+        raise refused from error
+    if im.format not in ("JPEG", "MPO", "PNG") or (im.format == "PNG" and getattr(im, "n_frames", 1) > 1):
+        return data, ext  # GIF, WebP, animations... as they are
     out = io.BytesIO()
-    # a phone's MPO (a JPEG with more pictures in it) is a photo too: only its first is kept
-    if im.format in ("JPEG", "MPO"):
-        metadata = im.getexif() or any(key in im.info for key in ("xmp", "photoshop"))
-        if not metadata and max(im.size) <= UPLOAD_MAX_SIDE:
-            return data, "jpg"  # nothing to remove: not encoded again, no quality lost
-        icc = im.info.get("icc_profile")
-        im = ImageOps.exif_transpose(im)
-        im.thumbnail((UPLOAD_MAX_SIDE, UPLOAD_MAX_SIDE), Image.LANCZOS)
-        if im.mode not in ("RGB", "L"):
-            im = im.convert("RGB")
-        im.save(out, "JPEG", quality=90, optimize=True, progressive=True, icc_profile=icc)
-        return out.getvalue(), "jpg"
-    if getattr(im, "n_frames", 1) > 1:
-        return data, ext  # animations as they are
-    if im.format == "PNG":
-        # saved again, without its EXIF, XMP and text chunks; no quality is lost in a PNG
+    try:
+        im.load()
+        # a phone's MPO (a JPEG with more pictures in it) is a photo too: only its first is kept
+        if im.format in ("JPEG", "MPO"):
+            if plain_jpeg(im, data) and max(im.size) <= UPLOAD_MAX_SIDE:
+                return data, "jpg"  # nothing to remove: not encoded again, no quality lost
+            icc = im.info.get("icc_profile")
+            im = ImageOps.exif_transpose(im)
+            im.thumbnail((UPLOAD_MAX_SIDE, UPLOAD_MAX_SIDE), Image.LANCZOS)
+            if im.mode not in ("RGB", "L"):
+                im = im.convert("RGB")
+            # comment=b"": Pillow would write the source's comment again
+            im.save(out, "JPEG", quality=90, optimize=True, progressive=True, icc_profile=icc, comment=b"")
+            return out.getvalue(), "jpg"
+        # a PNG is saved again, without its EXIF, XMP and text chunks; no quality is lost
         icc = im.info.get("icc_profile")
         ImageOps.exif_transpose(im).save(out, "PNG", optimize=True, icc_profile=icc)
         return out.getvalue(), "png"
-    return data, ext
+    except UNUSABLE as error:  # e.g. a JPEG cut short
+        raise refused from error

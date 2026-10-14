@@ -107,5 +107,42 @@ def test_jpeg_without_metadata_is_not_encoded_again(admin_client, media_root):
 
 
 @pytest.mark.django_db
+def test_only_the_first_picture_of_a_jpeg_is_kept(admin_client, media_root):
+    """An MPO with something only in its second picture, and a JPEG with a photo appended (as
+    in some motion photos)."""
+    second = Image.new("RGB", (400, 300), "red")
+    second.info["comment"] = b"GPS 50N 12E"  # Pillow writes it into the second picture
+    mpo = io.BytesIO()
+    Image.new("RGB", (400, 300), "teal").save(mpo, "MPO", save_all=True, append_images=[second])
+    plain = io.BytesIO()
+    Image.new("RGB", (400, 300), "teal").save(plain, "JPEG")
+    for data in (mpo.getvalue(), plain.getvalue() + phone_photo((40, 30))):
+        kept = stored(media_root, post_file(admin_client, "IMG_1234.JPG", data, "image/jpeg"))
+        assert kept.count(b"\xff\xd8\xff") == 1 and b"GPS 50N" not in kept
+        with Image.open(io.BytesIO(kept)) as im:
+            assert im.size == (400, 300) and not im.getexif()
+
+
+@pytest.mark.django_db
+def test_jpeg_comment_goes_too(admin_client, media_root):
+    out = io.BytesIO()
+    Image.new("RGB", (400, 300), "teal").save(out, "JPEG", comment=b"Nad Vltavou 50.08N 14.42E")
+    response = post_file(admin_client, "photo.jpg", out.getvalue(), "image/jpeg")
+    assert b"Vltavou" not in stored(media_root, response)
+
+
+@pytest.mark.django_db
+def test_picture_that_cannot_be_cleaned_is_refused(admin_client, media_root, monkeypatch):
+    photo = phone_photo((1600, 1200))
+    cut = photo[: len(photo) // 3]  # the header with the GPS position reads, the picture does not
+    response = post_file(admin_client, "IMG_1234.JPG", cut, "image/jpeg")
+    assert response.status_code == 400 and "nenahrál" in response.json()["error"]
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 1000)  # a 200 MP photo, for Pillow
+    response = post_file(admin_client, "IMG_1234.JPG", photo, "image/jpeg")
+    assert response.status_code == 400 and "nenahrál" in response.json()["error"]
+    assert not [path for path in media_root.rglob("*") if path.is_file()]
+
+
+@pytest.mark.django_db
 def test_upload_url_takes_only_post(admin_client, media_root):
     assert admin_client.get(UPLOAD_URL).status_code == 405

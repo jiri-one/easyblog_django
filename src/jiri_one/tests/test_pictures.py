@@ -153,6 +153,16 @@ def test_broken_addresses_do_not_stop_a_save(media_root):
     assert "https://[" not in out and "&quot;width&quot;:300" in out
 
 
+def test_paths_out_of_the_media_are_left_alone(media_root):
+    put_picture("big.jpg", (1600, 1200))
+    html = (
+        '<p><img src="/files/nahledy/../../x-200x100.jpg"></p>'
+        # a preview whose original is not there, in a link that leads out of MEDIA_ROOT
+        '<p><a href="/files/../../etc/passwd"><img src="/files/nahledy/x-200x150.jpg" width="100"></a></p>'
+    )
+    assert process_pictures(html) == html
+
+
 def test_attachment_json_nested_too_deep_is_dropped():
     data = "[" * 100000 + "]" * 100000
     assert "data-trix-attachment" not in clean_editor_html(f'<figure data-trix-attachment="{data}"></figure>')

@@ -29,7 +29,7 @@ from django.views.decorators.http import require_POST
 
 # internal imports
 from jiri_one.models import Comment, Post, Tag
-from jiri_one.pictures import UPLOAD_MAX_BYTES, prepare_upload
+from jiri_one.pictures import UPLOAD_MAX_BYTES, PictureRefusedError, prepare_upload
 
 # helper variables
 TagDoesNotExist = Tag.DoesNotExist
@@ -231,7 +231,10 @@ def upload_attachment(request):
         return JsonResponse(
             {"error": f"Files must be {UPLOAD_MAX_BYTES // 2**20} MB or smaller."}, status=400
         )
-    data, ext = prepare_upload(file.name, file.read())
+    try:
+        data, ext = prepare_upload(file.name, file.read())
+    except PictureRefusedError as refused:
+        return JsonResponse({"error": str(refused)}, status=400)
     day = timezone.localdate().strftime("%Y/%m/%d")
     path = default_storage.save(f"prose/{day}/{uuid4()}.{ext}", ContentFile(data))
     return JsonResponse({"url": default_storage.url(path)}, status=201)
