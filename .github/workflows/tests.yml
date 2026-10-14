@@ -40,3 +40,7 @@ jobs:
         run: pytest -v
         env:
           SYSTEM_ENV: GITHUB_WORKFLOW
+      - name: Ruff
+        run: ruff check src
+      - name: Pyright
+        run: pyright
