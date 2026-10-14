@@ -201,6 +201,8 @@ def make_preview(path, size):
     preview's path (an existing one is used again)."""
     with default_storage.open(path) as file, Image.open(file) as im:
         im = ImageOps.exif_transpose(im)
+        if im.mode.startswith("I"):  # 16-bit grey (a PNG): to 8 bits, or RGB would clip it white
+            im = im.convert("I").point(lambda value: value / 256).convert("L")
         see_through = im.mode in ("RGBA", "LA", "PA") or "transparency" in im.info
         if see_through:
             im, icc = in_colours(im, "RGBA")

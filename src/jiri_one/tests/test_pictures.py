@@ -164,6 +164,15 @@ def test_cmyk_picture_keeps_its_colours_in_the_preview(media_root, cmyk_profile)
         assert r > 200 and g < 60 and b < 60
 
 
+def test_16_bit_grey_picture_keeps_its_tones_in_the_preview(media_root):
+    out = io.BytesIO()
+    Image.new("I;16", (1600, 1200), 32768).save(out, "PNG")  # middle grey
+    default_storage.save("scan.png", ContentFile(out.getvalue()))
+    assert "nahledy/scan.png-640x480.jpg" in process_pictures('<img src="/files/scan.png" width="320">')
+    with Image.open(media_root / "nahledy/scan.png-640x480.jpg") as im:
+        assert 120 < im.getpixel((320, 240))[0] < 136
+
+
 def test_responsive_pictures_are_the_authors(media_root):
     put_picture("big.jpg", (1600, 1200))
     html = (
