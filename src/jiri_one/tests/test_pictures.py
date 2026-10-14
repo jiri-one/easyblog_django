@@ -153,6 +153,44 @@ def test_broken_addresses_do_not_stop_a_save(media_root):
     assert "https://[" not in out and "&quot;width&quot;:300" in out
 
 
+def test_attachment_json_nested_too_deep_is_dropped():
+    data = "[" * 100000 + "]" * 100000
+    assert "data-trix-attachment" not in clean_editor_html(f'<figure data-trix-attachment="{data}"></figure>')
+
+
+def test_sizes_in_other_units_are_the_authors(media_root):
+    put_picture("photo.jpg", (2400, 1800))
+    html = '<p><img src="/files/photo.jpg" width="100%"/><img src="/files/photo.jpg" style="width: 20em"/></p>'
+    assert process_pictures(html) == html
+
+
+def test_preview_follows_a_new_size(media_root):
+    put_picture("photo.jpg", (2400, 1800))
+    small = process_pictures('<p><img src="/files/photo.jpg" width="100"/></p>')
+    assert 'src="/files/nahledy/photo.jpg-200x150.jpg"' in small
+    # the author makes it bigger in the HTML; the preview is made again from the original
+    bigger = process_pictures(small.replace('width="100" height="75"', 'width="500" height="375"'))
+    assert 'src="/files/nahledy/photo.jpg-1000x750.jpg"' in bigger
+    assert process_pictures(bigger) == bigger
+    # shown at 1000 px, the 2400 px original needs no preview any more
+    big = process_pictures(bigger.replace('width="500" height="375"', 'width="1000" height="750"'))
+    assert 'src="/files/photo.jpg"' in big
+
+
+def test_old_previews_keep_their_names(media_root):
+    """The previews made 2026-10-13 are named without the source's extension."""
+    put_picture("pejsek/p.jpg", (2322, 4128))
+    put_picture("nahledy/pejsek/p-300x533.jpg", (300, 533))
+    html = '<a href="/files/pejsek/p.jpg"><img alt="" height="267" src="/files/nahledy/pejsek/p-300x533.jpg" width="150"/></a>'
+    assert process_pictures(html) == html
+
+
+def test_files_prefix_with_another_media_url(media_root, settings):
+    settings.MEDIA_URL = "/media/"
+    put_picture("big.jpg", (1600, 1200))
+    assert "nahledy/big.jpg-640x480.jpg" in process_pictures('<img src="/files/big.jpg" width="320">')
+
+
 def test_editor_html_cleaning():
     html = editor_figure("prose/a.jpg", (2400, 1800)) + '<script>alert(1)</script><img src="x.jpg" onerror="alert(2)">'
     out = clean_editor_html(html)

@@ -48,7 +48,7 @@ def clean_json(value, allowed):
     """The JSON object with only the allowed keys of the right type, in its own order."""
     try:
         data = json.loads(value)
-    except ValueError:
+    except (ValueError, RecursionError):  # RecursionError: JSON nested too deep
         return None
     if not isinstance(data, dict):
         return None
@@ -93,12 +93,13 @@ def clean_editor_html(html):
 
 class TrixEditor(RichTextEditor):
     """django-prose's editor with Trix 2.1.19 from the blog's static files: prose loads 2.1.3
-    from unpkg, which has XSS bugs fixed in 2.1.4 to 2.1.18 (GitHub advisories of Trix)."""
+    from unpkg, which has XSS bugs fixed in 2.1.4 to 2.1.18 (GitHub advisories of Trix). Its
+    script is the blog's version of prose's editor.js, which tells when an upload fails."""
 
     class Media:
         extend = False
         css = {"all": ("trix/trix.css", "prose/editor.css")}
-        js = ("trix/trix.umd.min.js", "prose/editor.js")
+        js = ("trix/trix.umd.min.js", "js/editor.js")
 
 
 class PostContentField(RichTextField):

@@ -93,7 +93,8 @@ def media_path(url):
     if parts.netloc not in ("", "jiri.one", "www.jiri.one"):
         return None
     path = urllib.parse.unquote(parts.path)
-    for prefix in (settings.MEDIA_URL, OLD_MEDIA_URL):
+    # the posts link /files/ (and the old /soubory/) whatever MEDIA_URL a setup has
+    for prefix in (settings.MEDIA_URL, "/files/", OLD_MEDIA_URL):
         if path.startswith(prefix):
             return path[len(prefix) :]
     return None
@@ -137,6 +138,18 @@ def fit(size, box):
 def height_for(width, size):
     """The height of a picture of this size shown this wide (at least 1 px)."""
     return max(1, round(width * size[1] / size[0]))
+
+
+def other_units(img):
+    """True when the post sizes the picture in something else than px (width="100%",
+    style="width: 20em"): the author's layout, which the picture keeps."""
+    style = img.attrs.get("style") or ""
+    for prop in ("width", "height"):
+        css = re.search(rf"(?:^|;)\s*{prop}\s*:\s*([^;]*)", style)
+        value = css.group(1) if css else img.attrs.get(prop)
+        if value is not None and not re.fullmatch(r"\s*[\d.]+\s*(px)?\s*", value):
+            return True
+    return False
 
 
 def shown_size(img, size):
@@ -203,14 +216,32 @@ DEFAULT_CAPTION = re.compile(
 PICTURE_FIGURE = re.compile(r'<figure\b[^>]*\battachment--preview\b[^>]*>.*?</figure>', re.S)
 
 
+PREVIEW_NAME = re.compile(rf"{PREVIEW_DIR}/(.+)-(\d+)x(\d+)\.(?:jpg|png)")
+
+
+def original_of(preview, link):
+    """The full picture of a preview: in the preview's name (since the names keep the source's
+    extension), or where the link around it leads."""
+    m = PREVIEW_NAME.fullmatch(preview)
+    for path in (m and m.group(1), link and media_path(link.attrs.get("href"))):
+        if path and not path.startswith(PREVIEW_DIR + "/") and default_storage.exists(path):
+            return path
+    return None
+
+
 def process_pictures(html):
     """The post's HTML with previews, links to the full pictures and shown sizes."""
     edits = []  # (start, old text, new text)
     links_done = set()
     for img in PictureFinder(html).imgs:
         path = media_path(img.attrs.get("src"))
-        if path is None or path.startswith(PREVIEW_DIR + "/"):
+        if path is None or (other_units(img) and not img.from_editor):
             continue
+        current = None  # the preview the picture shows now, if it does
+        if path.startswith(PREVIEW_DIR + "/"):
+            current, path = path, original_of(path, img.link)
+            if path is None:
+                continue
         size = picture_size(path)
         if size is None:
             continue
@@ -218,11 +249,18 @@ def process_pictures(html):
         new = img.raw
         preview = size[0] >= WIDER * w
         if preview:
-            try:
-                preview_path = make_preview(path, (DENSITY * w, height_for(DENSITY * w, size)))
-            except UNUSABLE:  # e.g. a JPEG cut short: the header reads, the picture does not
-                continue
+            wanted = (DENSITY * w, height_for(DENSITY * w, size))
+            m = current and PREVIEW_NAME.fullmatch(current)
+            if m and (int(m.group(2)), int(m.group(3))) == wanted:
+                preview_path = current  # still the right size, whatever its name
+            else:
+                try:
+                    preview_path = make_preview(path, wanted)
+                except UNUSABLE:  # e.g. a JPEG cut short: the header reads, the picture does not
+                    continue
             new = set_attr(new, "src", media_url(preview_path))
+        elif current:
+            new = set_attr(new, "src", media_url(path))  # shown big enough for the original
         if img.from_editor or "width" in img.attrs or "height" in img.attrs or (preview and not given):
             new = set_attr(set_attr(new, "width", w), "height", h)
         if img.link is None:
