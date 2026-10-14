@@ -144,5 +144,16 @@ def test_picture_that_cannot_be_cleaned_is_refused(admin_client, media_root, mon
 
 
 @pytest.mark.django_db
+def test_cmyk_photo_keeps_its_colours(admin_client, media_root, cmyk_profile):
+    out = io.BytesIO()
+    Image.new("CMYK", (40, 30), (255, 0, 0, 0)).save(out, "JPEG", icc_profile=cmyk_profile)
+    response = post_file(admin_client, "cover.jpg", out.getvalue(), "image/jpeg")
+    with Image.open(io.BytesIO(stored(media_root, response))) as im:
+        assert im.mode == "RGB" and not im.info.get("icc_profile")  # sRGB
+        r, g, b = im.getpixel((20, 15))
+        assert r > 200 and g < 60 and b < 60  # red as the profile says, not cyan
+
+
+@pytest.mark.django_db
 def test_upload_url_takes_only_post(admin_client, media_root):
     assert admin_client.get(UPLOAD_URL).status_code == 405

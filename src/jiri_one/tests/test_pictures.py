@@ -153,6 +153,17 @@ def test_broken_addresses_do_not_stop_a_save(media_root):
     assert "https://[" not in out and "&quot;width&quot;:300" in out
 
 
+def test_cmyk_picture_keeps_its_colours_in_the_preview(media_root, cmyk_profile):
+    out = io.BytesIO()
+    Image.new("CMYK", (1600, 1200), (255, 0, 0, 0)).save(out, "JPEG", icc_profile=cmyk_profile)
+    default_storage.save("cover.jpg", ContentFile(out.getvalue()))
+    assert "nahledy/cover.jpg-640x480.jpg" in process_pictures('<img src="/files/cover.jpg" width="320">')
+    with Image.open(media_root / "nahledy/cover.jpg-640x480.jpg") as im:
+        assert not im.info.get("icc_profile")
+        r, g, b = im.getpixel((320, 240))
+        assert r > 200 and g < 60 and b < 60
+
+
 def test_responsive_pictures_are_the_authors(media_root):
     put_picture("big.jpg", (1600, 1200))
     html = (

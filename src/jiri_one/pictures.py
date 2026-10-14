@@ -22,7 +22,7 @@ from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from PIL import Image, ImageOps
+from PIL import Image, ImageCms, ImageOps
 
 PREVIEW_DIR = "nahledy"
 WIDER = 2.5  # a picture this many times wider than shown gets a preview
@@ -33,6 +33,7 @@ UPLOAD_MAX_BYTES = 30 * 1024 * 1024
 OLD_MEDIA_URL = "/soubory/"  # the media's old address, which Caddy still serves
 # not a picture, not one Pillow knows, too big to open, or a path outside MEDIA_ROOT
 UNUSABLE = (OSError, SyntaxError, ValueError, SuspiciousFileOperation, Image.DecompressionBombError)
+SRGB = ImageCms.createProfile("sRGB")  # the colours browsers assume of a picture without a profile
 
 
 @dataclass
@@ -179,21 +180,37 @@ def shown_size(img, size):
     return max(1, round(h * size[0] / size[1])), max(1, round(h)), True
 
 
+def in_colours(im, mode):
+    """(im in mode, the colour profile to save with it, or None); mode is RGB, RGBA or L. The
+    profile of a picture in other colours (CMYK, or grey made RGB) would not fit the converted
+    pixels: they are converted through it to sRGB instead."""
+    icc = im.info.get("icc_profile")
+    try:
+        profile = icc and ImageCms.ImageCmsProfile(io.BytesIO(icc))
+        if not profile or profile.profile.xcolor_space.strip() == ("GRAY" if mode == "L" else "RGB"):
+            return (im if im.mode == mode else im.convert(mode)), icc
+        im = ImageCms.profileToProfile(im, profile, SRGB, outputMode=mode)
+    except (OSError, ValueError, ImageCms.PyCMSError):  # a profile or mode LittleCMS cannot take
+        im = im.convert(mode)
+    im.info.pop("icc_profile", None)
+    return im, None
+
+
 def make_preview(path, size):
     """The picture scaled to size, as JPEG, or PNG when it has see-through parts; returns the
     preview's path (an existing one is used again)."""
     with default_storage.open(path) as file, Image.open(file) as im:
-        icc = im.info.get("icc_profile")
         im = ImageOps.exif_transpose(im)
         see_through = im.mode in ("RGBA", "LA", "PA") or "transparency" in im.info
         if see_through:
-            im = im.convert("RGBA")
+            im, icc = in_colours(im, "RGBA")
             see_through = im.getchannel("A").getextrema()[0] < 255
         # the source's whole name, extension included: photo.jpg and photo.png get their own
         name = f"{PREVIEW_DIR}/{path}-{size[0]}x{size[1]}.{'png' if see_through else 'jpg'}"
         if default_storage.exists(name):
             return name
-        im = im.convert("RGBA" if see_through else "RGB").resize(size, Image.LANCZOS, reducing_gap=3.0)
+        im, icc = in_colours(im, "RGBA" if see_through else "RGB")
+        im = im.resize(size, Image.LANCZOS, reducing_gap=3.0)
         out = io.BytesIO()
         if see_through:
             im.save(out, "PNG", optimize=True, icc_profile=icc)
@@ -339,11 +356,9 @@ def prepare_upload(name, data):
             return out.getvalue(), "png"
         # always encoded again: what else a JPEG holds can be anywhere in it (after its first
         # scan, after its end, in more pictures), and nothing of it is written again
-        icc = im.info.get("icc_profile")
         im = ImageOps.exif_transpose(im)
         im.thumbnail((UPLOAD_MAX_SIDE, UPLOAD_MAX_SIDE), Image.LANCZOS)
-        if im.mode not in ("RGB", "L"):
-            im = im.convert("RGB")
+        im, icc = in_colours(im, "L" if im.mode == "L" else "RGB")  # a CMYK photo too
         # comment=b"": Pillow would write the source's comment again
         im.save(out, "JPEG", quality=90, optimize=True, progressive=True, icc_profile=icc, comment=b"")
         return out.getvalue(), "jpg"
