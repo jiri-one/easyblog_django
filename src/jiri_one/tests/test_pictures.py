@@ -116,6 +116,24 @@ def test_editor_html_cleaning():
     assert "script" not in out and "onerror" not in out
 
 
+def test_attachment_json_keeps_only_safe_keys():
+    data = (
+        "{&quot;contentType&quot;:&quot;image/png&quot;,"
+        "&quot;content&quot;:&quot;&lt;img src=x onerror=alert(1)&gt;&quot;,"
+        "&quot;url&quot;:&quot;javascript:alert(2)&quot;,"
+        "&quot;href&quot;:&quot;/files/prose/a.png&quot;,&quot;width&quot;:300}"
+    )
+    out = clean_editor_html(f'<figure data-trix-attachment="{data}" class="attachment"></figure>')
+    # Trix would render "content" as HTML when the post is opened in the editor
+    assert "content&quot;" not in out and "onerror" not in out and "javascript" not in out
+    assert "&quot;href&quot;:&quot;/files/prose/a.png&quot;" in out and "&quot;width&quot;:300" in out
+
+
+def test_attachment_from_trix_passes_unchanged():
+    html = editor_figure("prose/a.jpg", (2400, 1800), caption="Pejsek")
+    assert clean_editor_html(html) == html
+
+
 def save_post(content, edit_as_html):
     author = Author.objects.create(nick="Test", first_name="Test", last_name="Test")
     return Post.objects.create(title_cze="Test", content_cze=content, author=author, edit_as_html=edit_as_html)

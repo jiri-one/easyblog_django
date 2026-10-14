@@ -19,3 +19,5 @@ def test_post_written_as_html_gets_a_text_area(admin_client, post_as_html):
 def test_new_post_gets_the_editor(admin_client):
     page = admin_client.get("/admin/jiri_one/post/add/").content.decode()
     assert "trix-editor" in page
+    # Trix from the blog's static files, not the old 2.1.3 that prose loads from unpkg
+    assert "trix/trix.umd.min.js" in page and "unpkg.com" not in page
