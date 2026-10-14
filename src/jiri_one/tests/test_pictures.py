@@ -153,6 +153,18 @@ def test_broken_addresses_do_not_stop_a_save(media_root):
     assert "https://[" not in out and "&quot;width&quot;:300" in out
 
 
+def test_responsive_pictures_are_the_authors(media_root):
+    put_picture("big.jpg", (1600, 1200))
+    html = (
+        '<picture><source srcset="/files/big.jpg" media="(min-width: 800px)">'
+        '<img src="/files/big.jpg" width="320"></picture>'
+        '<img src="/files/big.jpg" srcset="/files/big.jpg 2x" width="320">'
+    )
+    assert process_pictures(html) == html
+    # after the </picture>, pictures get their previews again
+    assert "nahledy/big.jpg-640x480.jpg" in process_pictures(html + '<img src="/files/big.jpg" width="320">')
+
+
 def test_paths_out_of_the_media_are_left_alone(media_root):
     put_picture("big.jpg", (1600, 1200))
     html = (

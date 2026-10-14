@@ -99,14 +99,6 @@ def test_png_loses_xmp_without_exif_too(admin_client, media_root):
 
 
 @pytest.mark.django_db
-def test_jpeg_without_metadata_is_not_encoded_again(admin_client, media_root):
-    out = io.BytesIO()
-    Image.new("RGB", (600, 981), "teal").save(out, "JPEG", quality=95)
-    response = post_file(admin_client, "cover.jpg", out.getvalue(), "image/jpeg")
-    assert stored(media_root, response) == out.getvalue()
-
-
-@pytest.mark.django_db
 def test_only_the_first_picture_of_a_jpeg_is_kept(admin_client, media_root):
     """An MPO with something only in its second picture, and a JPEG with a photo appended (as
     in some motion photos)."""
@@ -125,18 +117,26 @@ def test_only_the_first_picture_of_a_jpeg_is_kept(admin_client, media_root):
 
 @pytest.mark.django_db
 def test_jpeg_comment_goes_too(admin_client, media_root):
+    comment = b"Nad Vltavou 50.08N 14.42E"
     out = io.BytesIO()
-    Image.new("RGB", (400, 300), "teal").save(out, "JPEG", comment=b"Nad Vltavou 50.08N 14.42E")
-    response = post_file(admin_client, "photo.jpg", out.getvalue(), "image/jpeg")
-    assert b"Vltavou" not in stored(media_root, response)
+    Image.new("RGB", (400, 300), "teal").save(out, "JPEG", comment=comment)
+    in_header = out.getvalue()
+    out = io.BytesIO()
+    Image.new("RGB", (400, 300), "teal").save(out, "JPEG", progressive=True)
+    # after the scans, where Pillow does not look for metadata
+    at_end = out.getvalue()[:-2] + b"\xff\xfe" + (len(comment) + 2).to_bytes(2, "big") + comment + b"\xff\xd9"
+    for data in (in_header, at_end):
+        assert b"Vltavou" not in stored(media_root, post_file(admin_client, "photo.jpg", data, "image/jpeg"))
 
 
 @pytest.mark.django_db
 def test_picture_that_cannot_be_cleaned_is_refused(admin_client, media_root, monkeypatch):
     photo = phone_photo((1600, 1200))
     cut = photo[: len(photo) // 3]  # the header with the GPS position reads, the picture does not
-    response = post_file(admin_client, "IMG_1234.JPG", cut, "image/jpeg")
-    assert response.status_code == 400 and "nenahrál" in response.json()["error"]
+    before_scan = photo[: photo.index(b"\xff\xda")]  # too little for Pillow to tell it is a JPEG
+    for data in (cut, before_scan):
+        response = post_file(admin_client, "IMG_1234.JPG", data, "image/jpeg")
+        assert response.status_code == 400 and "nenahrál" in response.json()["error"]
     monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 1000)  # a 200 MP photo, for Pillow
     response = post_file(admin_client, "IMG_1234.JPG", photo, "image/jpeg")
     assert response.status_code == 400 and "nenahrál" in response.json()["error"]

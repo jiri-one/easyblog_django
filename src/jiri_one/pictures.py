@@ -46,6 +46,7 @@ class Tag:
 class Img(Tag):
     link: Tag | None  # the <a> the picture is in
     from_editor: bool  # in a picture attachment of Trix
+    in_picture: bool  # in a <picture>, whose <source>s the browser chooses from
 
 
 class PictureFinder(HTMLParser):
@@ -54,6 +55,7 @@ class PictureFinder(HTMLParser):
         self.line_starts = [0] + [m.end() for m in re.finditer("\n", html)]
         self.links = []  # the <a> elements open at this point
         self.figures = []  # the classes of the open <figure> elements
+        self.pictures = 0  # how many <picture> elements are open
         self.imgs = []
         self.feed(html)
         self.close()
@@ -67,11 +69,13 @@ class PictureFinder(HTMLParser):
             self.links.append(self.tag(attrs))
         elif tag == "figure":
             self.figures.append((dict(attrs).get("class") or "").split())
+        elif tag == "picture":
+            self.pictures += 1
         elif tag == "img":
             found = self.tag(attrs)
             from_editor = any("attachment--preview" in classes for classes in self.figures)
             link = self.links[-1] if self.links else None
-            self.imgs.append(Img(found.start, found.raw, found.attrs, link, from_editor))
+            self.imgs.append(Img(found.start, found.raw, found.attrs, link, from_editor, self.pictures > 0))
 
     def handle_startendtag(self, tag, attrs):
         if tag == "img":  # <img .../>; a self-closed <a/> or <figure/> opens nothing
@@ -82,6 +86,8 @@ class PictureFinder(HTMLParser):
             self.links.pop()
         elif tag == "figure" and self.figures:
             self.figures.pop()
+        elif tag == "picture" and self.pictures:
+            self.pictures -= 1
 
 
 def media_path(url):
@@ -245,6 +251,8 @@ def process_pictures(html):
         path = media_path(img.attrs.get("src"))
         if path is None or (other_units(img) and not img.from_editor):
             continue
+        if img.in_picture or "srcset" in img.attrs:
+            continue  # the author's own choice of files for each screen
         current = None  # the preview the picture shows now, if it does
         if path.startswith(PREVIEW_DIR + "/"):
             current, path = path, original_of(path, img.link)
@@ -295,30 +303,16 @@ class PictureRefusedError(Exception):
     """A picture that cannot be cleaned of its metadata, so it is not stored at all."""
 
 
-# what a JPEG may hold besides the picture to be stored as it is: JFIF, a colour profile
-PLAIN_JPEG_SEGMENTS = {"APP0": b"JFIF\0", "APP2": b"ICC_PROFILE\0", "APP14": b"Adobe"}
-
-
-def plain_jpeg(im, data):
-    """True for a JPEG with nothing but one picture in it: no EXIF, XMP, IPTC or comment, no
-    more pictures (an MPO, or a JPEG appended, as in some motion photos), nothing after it."""
-    return (
-        im.format == "JPEG"
-        and all(
-            marker in PLAIN_JPEG_SEGMENTS and payload.startswith(PLAIN_JPEG_SEGMENTS[marker])
-            for marker, payload in im.applist
-        )
-        and data.count(b"\xff\xd8\xff") == 1
-        and data.endswith(b"\xff\xd9")
-    )
+JPEG_START, PNG_START = b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n"
 
 
 def prepare_upload(name, data):
-    """(bytes, extension) to store for a file uploaded in the editor. A photo is turned
-    upright, made at most UPLOAD_MAX_SIDE big and loses its EXIF, XMP, IPTC and comments
-    (the GPS position included); a PNG is saved again without any of that. Other files, and
-    JPEGs with nothing in them but the picture, are kept as they are. A JPEG or PNG that
-    cannot be read, or a picture too big to open safely, raises PictureRefusedError."""
+    """(bytes, extension) to store for a file uploaded in the editor. A JPEG (a photo) is
+    encoded again: turned upright, at most UPLOAD_MAX_SIDE big, only its first picture (an MPO
+    has more) and without EXIF, XMP, IPTC or comments, so without the GPS position too. A still
+    PNG is saved again without any of that. Other files, animations included, are kept as they
+    are. A JPEG or PNG that cannot be read, or a picture too big to open safely, raises
+    PictureRefusedError."""
     ext = os.path.splitext(name)[1].lstrip(".").lower()
     if not re.fullmatch(r"[a-z0-9]{1,10}", ext):
         ext = "bin"
@@ -328,7 +322,9 @@ def prepare_upload(name, data):
     )
     try:
         im = Image.open(io.BytesIO(data))
-    except Image.UnidentifiedImageError:
+    except Image.UnidentifiedImageError as error:
+        if data.startswith((JPEG_START, PNG_START)):
+            raise refused from error  # a JPEG or PNG too damaged to tell what it is
         return data, ext  # no picture Pillow knows (a PDF, a video...): kept as it is
     except UNUSABLE as error:  # Image.DecompressionBombError: too many pixels
         raise refused from error
@@ -337,21 +333,19 @@ def prepare_upload(name, data):
     out = io.BytesIO()
     try:
         im.load()
-        # a phone's MPO (a JPEG with more pictures in it) is a photo too: only its first is kept
-        if im.format in ("JPEG", "MPO"):
-            if plain_jpeg(im, data) and max(im.size) <= UPLOAD_MAX_SIDE:
-                return data, "jpg"  # nothing to remove: not encoded again, no quality lost
+        if im.format == "PNG":  # no quality is lost in a PNG
             icc = im.info.get("icc_profile")
-            im = ImageOps.exif_transpose(im)
-            im.thumbnail((UPLOAD_MAX_SIDE, UPLOAD_MAX_SIDE), Image.LANCZOS)
-            if im.mode not in ("RGB", "L"):
-                im = im.convert("RGB")
-            # comment=b"": Pillow would write the source's comment again
-            im.save(out, "JPEG", quality=90, optimize=True, progressive=True, icc_profile=icc, comment=b"")
-            return out.getvalue(), "jpg"
-        # a PNG is saved again, without its EXIF, XMP and text chunks; no quality is lost
+            ImageOps.exif_transpose(im).save(out, "PNG", optimize=True, icc_profile=icc)
+            return out.getvalue(), "png"
+        # always encoded again: what else a JPEG holds can be anywhere in it (after its first
+        # scan, after its end, in more pictures), and nothing of it is written again
         icc = im.info.get("icc_profile")
-        ImageOps.exif_transpose(im).save(out, "PNG", optimize=True, icc_profile=icc)
-        return out.getvalue(), "png"
+        im = ImageOps.exif_transpose(im)
+        im.thumbnail((UPLOAD_MAX_SIDE, UPLOAD_MAX_SIDE), Image.LANCZOS)
+        if im.mode not in ("RGB", "L"):
+            im = im.convert("RGB")
+        # comment=b"": Pillow would write the source's comment again
+        im.save(out, "JPEG", quality=90, optimize=True, progressive=True, icc_profile=icc, comment=b"")
+        return out.getvalue(), "jpg"
     except UNUSABLE as error:  # e.g. a JPEG cut short
         raise refused from error
