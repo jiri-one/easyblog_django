@@ -5,3 +5,4 @@ secret_key.txt
 build/
 *errors.log
 */errors.log
+*.egg-info/
