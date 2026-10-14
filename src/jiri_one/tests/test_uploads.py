@@ -63,6 +63,18 @@ def test_photo_is_upright_smaller_and_without_gps(admin_client, media_root):
 
 
 @pytest.mark.django_db
+def test_png_is_turned_upright_too(admin_client, media_root):
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    out = io.BytesIO()
+    Image.new("RGB", (100, 50), "teal").save(out, "PNG", exif=exif)
+    response = post_file(admin_client, "screen.png", out.getvalue(), "image/png")
+    with Image.open(io.BytesIO(stored(media_root, response))) as im:
+        assert im.size == (50, 100)
+        assert not im.getexif()
+
+
+@pytest.mark.django_db
 def test_jpeg_without_metadata_is_not_encoded_again(admin_client, media_root):
     out = io.BytesIO()
     Image.new("RGB", (600, 981), "teal").save(out, "JPEG", quality=95)

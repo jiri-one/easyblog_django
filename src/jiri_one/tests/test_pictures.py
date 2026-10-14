@@ -17,10 +17,11 @@ def media_root(settings, tmp_path):
     return tmp_path
 
 
-def put_picture(path, size):
+def put_picture(path, size, colour="teal", kind="JPEG"):
     out = io.BytesIO()
-    Image.new("RGB", size, "teal").save(out, "JPEG")
+    Image.new("RGB", size, colour).save(out, kind)
     default_storage.save(path, ContentFile(out.getvalue()))
+    return out.getvalue()
 
 
 def editor_figure(path, size, caption=None):
@@ -52,9 +53,9 @@ def test_editor_picture_gets_a_preview(media_root):
     html = "<div>Text</div>" + editor_figure("prose/2026/10/13/a.jpg", (2400, 1800))
     out = process_pictures(html)
     # at most 480x400 in the post, the preview twice that, the link to the full picture
-    assert '<img src="/files/nahledy/prose/2026/10/13/a-960x720.jpg" width="480" height="360">' in out
+    assert '<img src="/files/nahledy/prose/2026/10/13/a.jpg-960x720.jpg" width="480" height="360">' in out
     assert '<a href="/files/prose/2026/10/13/a.jpg">' in out
-    with Image.open(media_root / "nahledy/prose/2026/10/13/a-960x720.jpg") as preview:
+    with Image.open(media_root / "nahledy/prose/2026/10/13/a.jpg-960x720.jpg") as preview:
         assert preview.size == (960, 720)
     # Trix's own record of the attachment stays, so the editor opens it as before
     assert "&quot;url&quot;:&quot;/files/prose/2026/10/13/a.jpg&quot;" in out
@@ -86,7 +87,7 @@ def test_old_post_picture(media_root):
     html = '<p><a href="/files/pejsek/p.jpg"><img alt="" height="266" src="/files/pejsek/p.jpg" width="150"/></a></p>'
     assert process_pictures(html) == (
         '<p><a href="/files/pejsek/p.jpg"><img alt="" height="267" '
-        'src="/files/nahledy/pejsek/p-300x533.jpg" width="150"/></a></p>'
+        'src="/files/nahledy/pejsek/p.jpg-300x533.jpg" width="150"/></a></p>'
     )
 
 
@@ -94,7 +95,7 @@ def test_old_post_picture_without_a_link_gets_one(media_root):
     put_picture("big.jpg", (1600, 1200))
     html = '<p><img src="/files/big.jpg" style="float: left;" width="320"/></p>'
     assert process_pictures(html) == (
-        '<p><a href="/files/big.jpg"><img src="/files/nahledy/big-640x480.jpg" '
+        '<p><a href="/files/big.jpg"><img src="/files/nahledy/big.jpg-640x480.jpg" '
         'style="float: left;" width="320" height="240"/></a></p>'
     )
 
@@ -107,6 +108,34 @@ def test_left_alone(media_root):
         '<p><img src="/files/missing.jpg" width="100"/></p>'  # no such file
     )
     assert process_pictures(html) == html
+
+
+def test_picture_that_does_not_decode_is_left_alone(media_root):
+    data = put_picture("cut.jpg", (1600, 1200))
+    (media_root / "cut.jpg").write_bytes(data[: len(data) // 3])  # the header reads, the rest is gone
+    html = '<p><img src="/files/cut.jpg" width="320"/></p>'
+    assert process_pictures(html) == html
+
+
+def test_same_names_with_other_extensions_get_their_own_previews(media_root):
+    put_picture("photo.jpg", (1600, 1200), "red")
+    put_picture("photo.png", (1600, 1200), "blue", "PNG")
+    out = process_pictures('<img src="/files/photo.jpg" width="320"/><img src="/files/photo.png" width="320"/>')
+    assert "/files/nahledy/photo.jpg-640x480.jpg" in out and "/files/nahledy/photo.png-640x480.jpg" in out
+    with Image.open(media_root / "nahledy/photo.png-640x480.jpg") as im:
+        assert im.getpixel((10, 10))[2] > 200  # blue, not the red JPEG's preview
+
+
+def test_very_narrow_picture(media_root):
+    put_picture("prose/line.png", (1, 1000), kind="PNG")
+    out = process_pictures(editor_figure("prose/line.png", (1, 1000)))
+    assert 'width="1" height="400"' in out
+
+
+def test_attribute_names_in_capitals(media_root):
+    put_picture("big.jpg", (1600, 1200))
+    out = process_pictures('<p><a href="/files/big.jpg"><IMG SRC="/files/big.jpg" WIDTH="320"></a></p>')
+    assert out == '<p><a href="/files/big.jpg"><IMG SRC="/files/nahledy/big.jpg-640x480.jpg" WIDTH="320" height="240"></a></p>'
 
 
 def test_editor_html_cleaning():

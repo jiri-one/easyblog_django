@@ -128,7 +128,12 @@ def attr_px(value):
 def fit(size, box):
     """size scaled down to fit into box, keeping its proportions."""
     scale = min(1, box[0] / size[0], box[1] / size[1])
-    return round(size[0] * scale), round(size[1] * scale)
+    return max(1, round(size[0] * scale)), max(1, round(size[1] * scale))
+
+
+def height_for(width, size):
+    """The height of a picture of this size shown this wide (at least 1 px)."""
+    return max(1, round(width * size[1] / size[0]))
 
 
 def shown_size(img, size):
@@ -140,14 +145,13 @@ def shown_size(img, size):
     if img.from_editor or not (w or h):
         return *fit(size, BOX), False
     if w:
-        return round(w), round(w * size[1] / size[0]), True
-    return round(h * size[0] / size[1]), round(h), True
+        return max(1, round(w)), height_for(w, size), True
+    return max(1, round(h * size[0] / size[1])), max(1, round(h)), True
 
 
 def make_preview(path, size):
     """The picture scaled to size, as JPEG, or PNG when it has see-through parts; returns the
     preview's path (an existing one is used again)."""
-    stem = os.path.splitext(path)[0]
     with default_storage.open(path) as file, Image.open(file) as im:
         icc = im.info.get("icc_profile")
         im = ImageOps.exif_transpose(im)
@@ -155,7 +159,8 @@ def make_preview(path, size):
         if see_through:
             im = im.convert("RGBA")
             see_through = im.getchannel("A").getextrema()[0] < 255
-        name = f"{PREVIEW_DIR}/{stem}-{size[0]}x{size[1]}.{'png' if see_through else 'jpg'}"
+        # the source's whole name, extension included: photo.jpg and photo.png get their own
+        name = f"{PREVIEW_DIR}/{path}-{size[0]}x{size[1]}.{'png' if see_through else 'jpg'}"
         if default_storage.exists(name):
             return name
         im = im.convert("RGBA" if see_through else "RGB").resize(size, Image.LANCZOS, reducing_gap=3.0)
@@ -172,8 +177,8 @@ def set_attr(tag, name, value):
     """The tag with the attribute set (replaced, or added before the end of the tag)."""
     value = escape(str(value))
     pattern = rf"(\s{name}\s*=\s*)(\"[^\"]*\"|'[^']*'|[^\s>]+)"
-    if re.search(pattern, tag):
-        return re.sub(pattern, lambda m: f'{m.group(1)}"{value}"', tag, count=1)
+    if re.search(pattern, tag, re.IGNORECASE):
+        return re.sub(pattern, lambda m: f'{m.group(1)}"{value}"', tag, count=1, flags=re.IGNORECASE)
     return re.sub(r"\s*/?>$", lambda m: f' {name}="{value}"{m.group(0)}', tag, count=1)
 
 
@@ -200,7 +205,11 @@ def process_pictures(html):
         new = img.raw
         preview = size[0] >= WIDER * w
         if preview:
-            new = set_attr(new, "src", media_url(make_preview(path, (DENSITY * w, round(DENSITY * w * size[1] / size[0])))))
+            try:
+                preview_path = make_preview(path, (DENSITY * w, height_for(DENSITY * w, size)))
+            except UNUSABLE:  # e.g. a JPEG cut short: the header reads, the picture does not
+                continue
+            new = set_attr(new, "src", media_url(preview_path))
         if img.from_editor or "width" in img.attrs or "height" in img.attrs or (preview and not given):
             new = set_attr(set_attr(new, "width", w), "height", h)
         if img.link is None:
@@ -250,6 +259,7 @@ def prepare_upload(name, data):
         im.save(out, "JPEG", quality=90, optimize=True, progressive=True, icc_profile=icc)
         return out.getvalue(), "jpg"
     if im.format == "PNG" and im.getexif():
-        im.save(out, "PNG", optimize=True, icc_profile=im.info.get("icc_profile"))
+        icc = im.info.get("icc_profile")
+        ImageOps.exif_transpose(im).save(out, "PNG", optimize=True, icc_profile=icc)
         return out.getvalue(), "png"
     return data, ext

@@ -11,7 +11,8 @@ class PostAdmin(admin.ModelAdmin):
         if obj is not None and obj.edit_as_html:
             # a plain text area instead of the editor, which would rebuild the HTML
             for name in ("content_cze", "content_eng"):
-                form.base_fields[name].widget = AdminTextareaWidget(attrs={"rows": 30})
+                if name in form.base_fields:  # not there for staff who may only view posts
+                    form.base_fields[name].widget = AdminTextareaWidget(attrs={"rows": 30})
         return form
 
 
