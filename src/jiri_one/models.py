@@ -1,8 +1,15 @@
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Max
 from django.utils import timezone
 from django.utils.text import slugify
-from prose.fields import RichTextField
+
+from jiri_one.fields import PostContentField
+
+
+def get_next_post_id():
+    # after the highest one, not the count: posts can be deleted
+    return (Post.objects.aggregate(Max("id"))["id__max"] or 0) + 1
 
 
 class Post(models.Model):
@@ -10,15 +17,14 @@ class Post(models.Model):
         super().__init__(*args, **kwargs)
         self.html_tags = ""
 
-    @staticmethod
-    def get_next_id():
-        return Post.objects.count() + 1
+    # the migrations reference the id default as Post.get_next_id
+    get_next_id = staticmethod(get_next_post_id)
 
     id = models.IntegerField(
         primary_key=True,
         validators=[MinValueValidator(1)],
         editable=False,
-        default=get_next_id,
+        default=get_next_post_id,
     )
     title_cze = models.CharField("Post title CZE", unique=True, max_length=100)
     title_eng = models.CharField(
@@ -29,8 +35,17 @@ class Post(models.Model):
         null=True,
         default=None,
     )
-    content_cze = RichTextField("Post content CZE")
-    content_eng = RichTextField("Post content ENG", blank=True, null=True, default=None)
+    content_cze = PostContentField("Post content CZE")
+    content_eng = PostContentField("Post content ENG", blank=True, null=True, default=None)
+    # The editor (Trix) rebuilds HTML it did not write as soon as it opens it: paragraphs,
+    # pictures floating beside the text, videos. Posts from before it are edited as HTML.
+    edit_as_html = models.BooleanField(
+        "Edit as HTML",
+        default=False,
+        db_default=False,
+        help_text="The content is edited as HTML, not in the editor, and saved as written. "
+        "Unticked, the editor keeps only what it can do itself: no styles, floating pictures or videos.",
+    )
     url_cze = models.SlugField(
         "Post URL CZE", unique=True, max_length=100, editable=False
     )

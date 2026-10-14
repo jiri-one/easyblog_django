@@ -1,7 +1,76 @@
+/* Three themes: the original colours, and plain black on white ("light") or white
+   on black ("dark") with high contrast, for a black-and-white monitor; js/theme.js
+   switches them. */
+:root {
+  color-scheme: light;
+  --fg: #000000;
+  --page-bg: #ffffff;
+  --panel-bg: #f5f5f5;
+  --line: #3c67be;
+  --bar-bg: #3c67be;
+  --bar-fg: #ffffff;
+  --soft-bg: #c5d7fb;
+  --hover-bg: #3c67be;
+  --hover-fg: #ffffff;
+  --accent: #3c67be;
+  --muted: #c5d7fb;
+  --comment-bg: #e4e4e4;
+  --form-bg: #f2f2f2;
+  --input-bg: #ffffff;
+  --input-border: #cccccc;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --fg: #000000;
+  --page-bg: #ffffff;
+  --panel-bg: #ffffff;
+  --line: #000000;
+  --bar-bg: #ffffff;
+  --bar-fg: #000000;
+  --soft-bg: #ffffff;
+  --hover-bg: #000000;
+  --hover-fg: #ffffff;
+  --accent: #555555;
+  --muted: #999999;
+  --comment-bg: #dddddd;
+  --form-bg: #eeeeee;
+  --input-bg: #ffffff;
+  --input-border: #000000;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --fg: #ffffff;
+  --page-bg: #000000;
+  --panel-bg: #000000;
+  --line: #ffffff;
+  --bar-bg: #000000;
+  --bar-fg: #ffffff;
+  --soft-bg: #000000;
+  --hover-bg: #ffffff;
+  --hover-fg: #000000;
+  --accent: #bbbbbb;
+  --muted: #666666;
+  --comment-bg: #222222;
+  --form-bg: #111111;
+  --input-bg: #000000;
+  --input-border: #ffffff;
+}
+
+/* the bars have the page colour there, so lines set them apart */
+html:is([data-theme="light"], [data-theme="dark"]) header { border-bottom: 2px solid var(--line); }
+html:is([data-theme="light"], [data-theme="dark"]) footer { border-top: 2px solid var(--line); }
+/* transparent pictures in posts (black lines) stay readable */
+html[data-theme="dark"] #middle img { background-color: #ffffff; }
+
 body {
   font-family: arial;
   font-size: 22px;
-  border: 2px solid #3c67be;
+  border: 2px solid var(--line);
+  color: var(--fg);
+  background-color: var(--page-bg);
+  accent-color: var(--fg);
 }
 
 b, strong {
@@ -19,19 +88,19 @@ p {
 dl {
   width: 100%;
   overflow: hidden;
-  border-top: 1px solid #3c67be;
+  border-top: 1px solid var(--line);
 }
 dt {
   float: left;
   width: 50%;
   /* adjust the width; make sure the total of both is 100% */
-  border-bottom: 1px solid #3c67be;
+  border-bottom: 1px solid var(--line);
 }
 dd {
   float: left;
   width: 50%;
   /* adjust the width; make sure the total of both is 100% */
-  border-bottom: 1px solid #3c67be;
+  border-bottom: 1px solid var(--line);
 }
 
 .container {
@@ -43,21 +112,22 @@ dd {
 
 header {
   grid-column: span 3;
-  padding-bottom: 10px;
+  position: relative;
+  padding: 0 64px 10px;
   text-align: center;
   font-size: 2em;
-  background-color: #3c67be;
-  color: white;
+  background-color: var(--bar-bg);
+  color: var(--bar-fg);
 }
 
 main {
   flex: 1;
   padding: 20px;
-  background-color: #f5f5f5;
+  background-color: var(--panel-bg);
 }
 
 nav {
-  background-color: #f5f5f5;
+  background-color: var(--panel-bg);
   padding: 20px;
   text-align: center;
 }
@@ -67,8 +137,8 @@ footer {
   padding: 10px;
   text-align: center;
   font-size: 1.0em;
-  background-color: #3c67be;
-  color: white;
+  background-color: var(--bar-bg);
+  color: var(--bar-fg);
 }
 
 h1 {
@@ -78,43 +148,97 @@ h1 {
 }
 
 .title a:link, .title a:visited {
-  color: #000000;
+  color: var(--fg);
   text-decoration: none;
   font-variant: small-caps;
 }
 
-.menu a:link, #sideLeft a:visited { display: block; padding: 2px 0px 2px 10px; margin: 0px; background-color: #c5d7fb; color: #000000; text-decoration: none; }
-.menu a:hover { background-color: #3c67be; color: #FFFFFF; }
+.menu a:link, #sideLeft a:visited { display: block; padding: 2px 0px 2px 10px; margin: 0px; background-color: var(--soft-bg); color: var(--fg); text-decoration: none; }
+.menu a:hover { background-color: var(--hover-bg); color: var(--hover-fg); }
 
-.date { font-weight: bold; border: 1px solid #3c67be; margin: 0px 0px 20px 0px; padding: 3px; background-color: #c5d7fb; color: #000000; }
+.date { font-weight: bold; border: 1px solid var(--line); margin: 0px 0px 20px 0px; padding: 3px; background-color: var(--soft-bg); color: var(--fg); }
 
-.titulek { font-weight: bold; border-bottom: 1px solid #3c67be; margin: 0px 0px 5px 0px; padding: 0px 0px 2px 0px; }
-.titulek a:link, #titulek a:visited { color: #000000; text-decoration: none; }
-.titulek a:hover { color: #3c67be; }
+.titulek { font-weight: bold; border-bottom: 1px solid var(--line); margin: 0px 0px 5px 0px; padding: 0px 0px 2px 0px; }
+.titulek a:link, #titulek a:visited { color: var(--fg); text-decoration: none; }
+.titulek a:hover { color: var(--accent); }
 
 .meta { margin-bottom: 15px; }
-.meta a:link, .meta a:visited { color: #3c67be; }
-.meta a:hover { color: #3c67be; }
+.meta a:link, .meta a:visited { color: var(--accent); }
+.meta a:hover { color: var(--accent); }
 
-.postend { margin: 5px 0px 30px 0px; padding: 0px; text-align: center; color: #c5d7fb; font-size: 18px; line-height: 0px; }
+.postend { margin: 5px 0px 30px 0px; padding: 0px; text-align: center; color: var(--muted); font-size: 18px; line-height: 0px; }
 
-a:link, a:visited { color: #000000; }
-a:hover { color: #3c67be; }
+a:link, a:visited { color: var(--fg); }
+a:hover { color: var(--accent); }
 
 .topics {
-  border: 1px solid #3c67be;
+  border: 1px solid var(--line);
 }
 
+.topics a:not(:last-child) {
+  border-bottom: 1px solid var(--line);
+}
+
+/* the flags grow and shrink with the title; 0.6em of the 44px title is their own 20pt */
 .img_flag {
-    margin-left: 5px
+  height: 0.6em;
+  width: auto;
+  margin-left: 5px;
+}
+
+/* the flags and the title never wrap apart */
+.title {
+  white-space: nowrap;
 }
 
 .other-links {
-  border: 1px solid #3c67be;
+  border: 1px solid var(--line);
   }
+
+.other-links a:not(:last-child) {
+  border-bottom: 1px solid var(--line);
+}
 
 .feedback {
   text-align: right;
+}
+
+/* pictures and videos in posts shrink with a narrow column instead of sticking out of
+   the page, and keep their proportions */
+#middle img, #middle video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* pictures from the editor (Trix): centred like in the editor, and several dropped in at once
+   share a row the same way (three, or two of two and four) */
+#middle figure.attachment {
+  margin: 10px 0;
+  text-align: center;
+}
+
+#middle .attachment-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+
+#middle .attachment-gallery > .attachment {
+  flex: 1 0 33%;
+  max-width: 33%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 5px;
+}
+
+#middle .attachment-gallery--2 > .attachment,
+#middle .attachment-gallery--4 > .attachment {
+  flex-basis: 50%;
+  max-width: 50%;
+}
+
+#middle .attachment__caption {
+  font-size: 0.8em;
 }
 
 @media (max-width: 720px) {
@@ -125,11 +249,62 @@ a:hover { color: #3c67be; }
 body {
   font-family: arial;
   font-size: 20px;
-  border: 2px solid #3c67be;
+  border: 2px solid var(--line);
 }
 
+/* the title with the colour switch next to it, the flags centred below them: with the
+   flags beside the title and the switch in the corner it did not fit on a phone */
 header {
-font-size: 7vw;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  column-gap: 0.25em;
+  padding: 10px 10px 12px;
+  font-size: 7vw;
+  font-size: min(8vw, 2em);
+}
+
+/* the parts of the title and the flags become items of the header's rows */
+.title {
+  display: contents;
+}
+
+/* "header" wins over the .theme-toggle rules further down */
+header .theme-toggle {
+  position: static;
+  order: 1;
+  margin-left: 10px;
+}
+
+/* ends the first row */
+header::after {
+  content: "";
+  flex-basis: 100%;
+  order: 2;
+}
+
+.title > a:first-child, .title > a:last-child {
+  order: 3;
+  line-height: 0;
+  margin-top: 10px;
+}
+
+.title > a:first-child {
+  margin-right: 10px;
+}
+
+.img_flag {
+  display: block;
+  height: 26px;
+  margin: 0;
+}
+
+/* pictures of a row one under another */
+#middle .attachment-gallery > .attachment {
+  flex-basis: 100%;
+  max-width: 100%;
+  padding: 0;
 }
 }
 
@@ -137,10 +312,10 @@ font-size: 7vw;
     text-align: center;
 }
 
-.footer-other a:link, #sideLeft a:visited { display: block; padding: 2px 0px 2px 10px; margin: 0px; background-color: #c5d7fb; color: #000000; text-decoration: none; }
-.footer-other a:hover { background-color: #3c67be; color: #FFFFFF; }
+.footer-other a:link, #sideLeft a:visited { display: block; padding: 2px 0px 2px 10px; margin: 0px; background-color: var(--soft-bg); color: var(--fg); text-decoration: none; }
+.footer-other a:hover { background-color: var(--hover-bg); color: var(--hover-fg); }
 
-.comment_header {background-color: #E4E4E4;}
+.comment_header {background-color: var(--comment-bg);}
 
 .comment_title {
     font-size: 1.3em;
@@ -152,7 +327,9 @@ font-size: 7vw;
   padding: 5px 10px;
   margin: 5px 0;
   display: inline-block;
-  border: 1px solid #ccc;
+  border: 1px solid var(--input-border);
+  background-color: var(--input-bg);
+  color: var(--fg);
   border-radius: 4px;
   box-sizing: border-box;
   font-size: 24px;
@@ -163,7 +340,9 @@ font-size: 7vw;
   padding: 5px 10px;
   margin: 2px 0;
   display: inline-block;
-  border: 1px solid #ccc;
+  border: 1px solid var(--input-border);
+  background-color: var(--input-bg);
+  color: var(--fg);
   border-radius: 4px;
   box-sizing: border-box;
   font-size: 24px;
@@ -171,25 +350,25 @@ font-size: 7vw;
 
 .comment_form input[type=submit], .search_form input[type=submit] {
   width: 200px;
-  background-color: #c5d7fb;
-  color: black;
+  background-color: var(--soft-bg);
+  color: var(--fg);
   padding: 7px 15px;
   margin: 8px 0;
-  border: 1px solid #3c67be;
+  border: 1px solid var(--line);
   border-radius: 4px;
   cursor: pointer;
   font-size: 24px;
 }
 
 .comment_form input[type=submit]:hover, .search_form input[type=submit]:hover {
-  background-color: #3c67be;
-  color: #FFFFFF;
+  background-color: var(--hover-bg);
+  color: var(--hover-fg);
   font-size: 24px;
 }
 
 .comment_form {
   border-radius: 5px;
-  background-color: #f2f2f2;
+  background-color: var(--form-bg);
   padding: 20px;
 }
 
@@ -214,3 +393,33 @@ font-size: 7vw;
     top: 20px;
   }
 }
+/* colour switch in the top right corner of the page: a sun on a rectangle in the
+   colours of the current theme, a rainbow for the original ones */
+.theme-toggle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  box-sizing: border-box;
+  width: 52px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid var(--bar-fg);
+  border-radius: 4px;
+  background: linear-gradient(to right, #e40303, #ff8c00, #ffed00, #008026, #004dff, #750787);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.theme-toggle svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: auto;
+}
+
+/* a black edge keeps the white sun readable on every colour of the rainbow */
+.theme-toggle .sun-edge { stroke: #000000; stroke-width: 4.5; }
+
+html[data-theme="light"] .theme-toggle { background: #ffffff; color: #000000; }
+html[data-theme="light"] .theme-toggle .sun-edge { stroke: none; }
+html[data-theme="dark"] .theme-toggle { background: #000000; }

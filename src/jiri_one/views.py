@@ -3,9 +3,13 @@ import json
 from hashlib import sha256
 from ipaddress import ip_address, ip_network
 from subprocess import Popen
+from uuid import uuid4
 
 import httpx
 from django.conf import settings
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, QuerySet
 from django.http import (
@@ -13,15 +17,19 @@ from django.http import (
     HttpResponse,
     HttpResponseForbidden,
     HttpResponseServerError,
+    JsonResponse,
 )
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 # internal imports
 from jiri_one.models import Comment, Post, Tag
+from jiri_one.pictures import UPLOAD_MAX_BYTES, PictureRefusedError, prepare_upload
 
 # helper variables
 TagDoesNotExist = Tag.DoesNotExist
@@ -36,16 +44,10 @@ async def get_post_html_tags(post_tags: QuerySet[Tag]):
 
 
 async def get_all_html_tags():
-    nr_of_tags: int = await Tag.objects.acount()
-    html_tags: str = ""
-    index = 0
-    async for tag in Tag.objects.all():
-        if index == nr_of_tags - 1:
-            html_tags += f'<a href="/tag/{tag.url_cze}">{tag.name_cze}</a>'
-        else:
-            html_tags += f'<a style="border-bottom: 1px solid #3c67be;" href="/tag/{tag.url_cze}">{tag.name_cze}</a>'
-        index += 1
-    return html_tags
+    # the lines between the tags come from the stylesheet (theme colours)
+    return "".join(
+        [f'<a href="/tag/{tag.url_cze}">{tag.name_cze}</a>' async for tag in Tag.objects.all()]
+    )
 
 
 class PostView(View):
@@ -214,3 +216,26 @@ class DeployApiView(View):
                 return HttpResponse("Noticed, but it is not new tag to redeploy code.")
         # In case we receive an event that's not ping or push
         return HttpResponse(status=204)
+
+
+@staff_member_required
+@require_POST
+def upload_attachment(request):
+    """Files dropped into the editor, under the URL name django-prose's widget uses. Unlike
+    django-prose's own view it is for the admin only, and photos lose their GPS position
+    (jiri_one.pictures.prepare_upload)."""
+    file = request.FILES.get("file")
+    if file is None:
+        return JsonResponse({"error": "No file."}, status=400)
+    if file.size > UPLOAD_MAX_BYTES:
+        return JsonResponse(
+            {"error": f"Files must be {UPLOAD_MAX_BYTES // 2**20} MB or smaller."}, status=400
+        )
+    try:
+        data, ext = prepare_upload(file.name, file.read())
+    except PictureRefusedError as refused:
+        return JsonResponse({"error": str(refused)}, status=400)
+    day = timezone.localdate().strftime("%Y/%m/%d")
+    path = default_storage.save(f"prose/{day}/{uuid4()}.{ext}", ContentFile(data))
+    return JsonResponse({"url": default_storage.url(path)}, status=201)
+
