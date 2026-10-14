@@ -6,7 +6,7 @@ Tests status (PyTest, PyRight, Ruff): [![Django Tests (PyTest)](https://github.c
 Main features of blog:
 - extensively tested (PyTest and PyTest Django)
 - for code are used linters and checkers (PyRight and Ruff)
-- automatic deploy to server witch GitHub WebHooks (every tag is automatically deployed to server)
+- automatic deploy: after every merge to main that passes the tests, GitHub Actions builds an arm64 container image (`ghcr.io/jiri-one/easyblog_django`), and the server (rootless Podman with Quadlet) picks it up overnight with `podman auto-update`
 
 ## How to run it
 I use this blog in Podman containers, so you can run it with Podman or Docker too:
