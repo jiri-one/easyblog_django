@@ -17,6 +17,7 @@ import urllib.parse
 from dataclasses import dataclass
 from html import escape
 from html.parser import HTMLParser
+from typing import cast
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousFileOperation
@@ -63,7 +64,7 @@ class PictureFinder(HTMLParser):
 
     def tag(self, attrs):
         line, column = self.getpos()
-        return Tag(self.line_starts[line - 1] + column, self.get_starttag_text(), dict(attrs))
+        return Tag(self.line_starts[line - 1] + column, self.get_starttag_text() or "", dict(attrs))
 
     def handle_starttag(self, tag, attrs):
         if tag == "a":
@@ -173,11 +174,12 @@ def shown_size(img, size):
     """(width, height, given): how big the post shows the picture; given is False when the
     size comes from BOX."""
     w, h = (px(written_size(img, prop)) for prop in ("width", "height"))
-    if img.from_editor or not (w or h):
-        return *fit(size, BOX), False
-    if w:
-        return max(1, round(w)), height_for(w, size), True
-    return max(1, round(h * size[0] / size[1])), max(1, round(h)), True
+    if not img.from_editor:
+        if w:
+            return max(1, round(w)), height_for(w, size), True
+        if h:
+            return max(1, round(h * size[0] / size[1])), max(1, round(h)), True
+    return *fit(size, BOX), False
 
 
 def in_colours(im, mode):
@@ -187,9 +189,12 @@ def in_colours(im, mode):
     icc = im.info.get("icc_profile")
     try:
         profile = icc and ImageCms.ImageCmsProfile(io.BytesIO(icc))
-        if not profile or profile.profile.xcolor_space.strip() == ("GRAY" if mode == "L" else "RGB"):
+        # Pillow's annotation of .profile also allows the file it was read from
+        space = profile and profile.profile.xcolor_space.strip()  # pyright: ignore[reportAttributeAccessIssue]
+        if not profile or space == ("GRAY" if mode == "L" else "RGB"):
             return (im if im.mode == mode else im.convert(mode)), icc
-        im = ImageCms.profileToProfile(im, profile, SRGB, outputMode=mode)
+        # a new picture: None comes back only with inPlace=True
+        im = cast(Image.Image, ImageCms.profileToProfile(im, profile, SRGB, outputMode=mode))
     except (OSError, ValueError, ImageCms.PyCMSError):  # a profile or mode LittleCMS cannot take
         im = im.convert(mode)
     im.info.pop("icc_profile", None)
@@ -206,13 +211,13 @@ def make_preview(path, size):
         see_through = im.mode in ("RGBA", "LA", "PA") or "transparency" in im.info
         if see_through:
             im, icc = in_colours(im, "RGBA")
-            see_through = im.getchannel("A").getextrema()[0] < 255
+            see_through = cast(tuple[int, int], im.getchannel("A").getextrema())[0] < 255  # one band
         # the source's whole name, extension included: photo.jpg and photo.png get their own
         name = f"{PREVIEW_DIR}/{path}-{size[0]}x{size[1]}.{'png' if see_through else 'jpg'}"
         if default_storage.exists(name):
             return name
         im, icc = in_colours(im, "RGBA" if see_through else "RGB")
-        im = im.resize(size, Image.LANCZOS, reducing_gap=3.0)
+        im = im.resize(size, Image.Resampling.LANCZOS, reducing_gap=3.0)
         out = io.BytesIO()
         if see_through:
             im.save(out, "PNG", optimize=True, icc_profile=icc)
@@ -231,7 +236,9 @@ def set_attr(tag, name, value):
     are walked one after another, so text inside a value that looks like an attribute
     (alt="a src=x onload=...") is never taken for one."""
     value = escape(str(value))
-    pos = re.match(r"<[^\s/>]+", tag).end()
+    name_end = re.match(r"<[^\s/>]+", tag)
+    assert name_end, tag  # the tags come from PictureFinder: "<" and the tag's name first
+    pos = name_end.end()
     while m := ATTRIBUTE.match(tag, pos):
         if m.group("name").lower() == name:
             if m.group("value") is None:  # a name without a value
@@ -286,7 +293,7 @@ def process_pictures(html):
         if preview:
             wanted = (DENSITY * w, height_for(DENSITY * w, size))
             m = current and PREVIEW_NAME.fullmatch(current)
-            if m and (int(m.group(2)), int(m.group(3))) == wanted and default_storage.exists(current):
+            if m and (int(m.group(2)), int(m.group(3))) == wanted and default_storage.exists(m.group(0)):
                 preview_path = current  # still the right size, whatever its name
             else:
                 try:
@@ -359,7 +366,7 @@ def prepare_upload(name, data):
         # always encoded again: what else a JPEG holds can be anywhere in it (after its first
         # scan, after its end, in more pictures), and nothing of it is written again
         im = ImageOps.exif_transpose(im)
-        im.thumbnail((UPLOAD_MAX_SIDE, UPLOAD_MAX_SIDE), Image.LANCZOS)
+        im.thumbnail((UPLOAD_MAX_SIDE, UPLOAD_MAX_SIDE), Image.Resampling.LANCZOS)
         im, icc = in_colours(im, "L" if im.mode == "L" else "RGB")  # a CMYK photo too
         # comment=b"": Pillow would write the source's comment again
         im.save(out, "JPEG", quality=90, optimize=True, progressive=True, icc_profile=icc, comment=b"")

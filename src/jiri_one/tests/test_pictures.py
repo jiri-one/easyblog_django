@@ -123,7 +123,8 @@ def test_same_names_with_other_extensions_get_their_own_previews(media_root):
     out = process_pictures('<img src="/files/photo.jpg" width="320"/><img src="/files/photo.png" width="320"/>')
     assert "/files/nahledy/photo.jpg-640x480.jpg" in out and "/files/nahledy/photo.png-640x480.jpg" in out
     with Image.open(media_root / "nahledy/photo.png-640x480.jpg") as im:
-        assert im.getpixel((10, 10))[2] > 200  # blue, not the red JPEG's preview
+        pixel = im.getpixel((10, 10))
+        assert isinstance(pixel, tuple) and pixel[2] > 200  # blue, not the red JPEG's preview
 
 
 def test_very_narrow_picture(media_root):
@@ -160,7 +161,9 @@ def test_cmyk_picture_keeps_its_colours_in_the_preview(media_root, cmyk_profile)
     assert "nahledy/cover.jpg-640x480.jpg" in process_pictures('<img src="/files/cover.jpg" width="320">')
     with Image.open(media_root / "nahledy/cover.jpg-640x480.jpg") as im:
         assert not im.info.get("icc_profile")
-        r, g, b = im.getpixel((320, 240))
+        pixel = im.getpixel((320, 240))
+        assert isinstance(pixel, tuple)
+        r, g, b = pixel
         assert r > 200 and g < 60 and b < 60
 
 
@@ -170,7 +173,8 @@ def test_16_bit_grey_picture_keeps_its_tones_in_the_preview(media_root):
     default_storage.save("scan.png", ContentFile(out.getvalue()))
     assert "nahledy/scan.png-640x480.jpg" in process_pictures('<img src="/files/scan.png" width="320">')
     with Image.open(media_root / "nahledy/scan.png-640x480.jpg") as im:
-        assert 120 < im.getpixel((320, 240))[0] < 136
+        pixel = im.getpixel((320, 240))
+        assert isinstance(pixel, tuple) and 120 < pixel[0] < 136
 
 
 def test_responsive_pictures_are_the_authors(media_root):

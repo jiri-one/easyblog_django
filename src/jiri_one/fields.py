@@ -96,7 +96,7 @@ class TrixEditor(RichTextEditor):
     from unpkg, which has XSS bugs fixed in 2.1.4 to 2.1.18 (GitHub advisories of Trix). Its
     script is the blog's version of prose's editor.js, which tells when an upload fails."""
 
-    class Media:
+    class Media(RichTextEditor.Media):
         extend = False
         css = {"all": ("trix/trix.css", "prose/editor.css")}
         js = ("trix/trix.umd.min.js", "js/editor.js")

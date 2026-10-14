@@ -150,7 +150,9 @@ def test_cmyk_photo_keeps_its_colours(admin_client, media_root, cmyk_profile):
     response = post_file(admin_client, "cover.jpg", out.getvalue(), "image/jpeg")
     with Image.open(io.BytesIO(stored(media_root, response))) as im:
         assert im.mode == "RGB" and not im.info.get("icc_profile")  # sRGB
-        r, g, b = im.getpixel((20, 15))
+        pixel = im.getpixel((20, 15))
+        assert isinstance(pixel, tuple)
+        r, g, b = pixel
         assert r > 200 and g < 60 and b < 60  # red as the profile says, not cyan
 
 
