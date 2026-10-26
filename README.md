@@ -22,3 +22,5 @@ Or you can run only database itself:
 - inport sql data to PostgreSQL
   
 `podman exec -it easyblog_django_db_1 psql -U jiri -d easyblog_django -f /init.sql`
+
+[#arch-everywhere](https://github.com/topics/arch-everywhere) [#iusearchbtw](https://github.com/topics/iusearchbtw)
