@@ -140,6 +140,8 @@ footer {
   background-color: var(--bar-bg);
   color: var(--bar-fg);
 }
+/* the colourful theme's hover accent is the bar's own background */
+footer a:link, footer a:visited, footer a:hover { color: inherit; }
 
 h1 {
   margin-bottom: 1em;
